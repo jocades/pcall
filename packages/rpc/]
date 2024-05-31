@@ -34,8 +34,7 @@ export function procedure() {
 export type Config<I extends z.ZodType, C> = I extends z.ZodUndefined
   ? { ctx: C }
   : { ctx: C; input: I['_output'] }
-
-export type AnyConfig = { ctx: any; input?: any }
+export type AnyConfig = Config<any, any>
 
 export type Middleware<I extends z.ZodType, C, R> = (opts: Config<I, C>) => R
 export type AnyMiddleware = Middleware<any, any, any>
@@ -97,7 +96,6 @@ export class ProcedureBuilder<I extends z.ZodType, O extends z.ZodType, C> {
   action<R extends O extends z.ZodUndefined ? any : O['_output']>(
     callback: Middleware<I, C, R>,
   ): Procedure<I, O, C, R> {
-    this.#middlewares.push(callback)
     return {
       $input: this.#internals.inputSchema,
       $output: this.#internals.outputSchema,
@@ -126,7 +124,6 @@ export class ProcedureBuilder<I extends z.ZodType, O extends z.ZodType, C> {
    *  ```
    */
   use<R>(callback: Middleware<I, C, R>): ProcedureBuilder<I, O, R> {
-    this.#middlewares.push(callback)
     return this as any
   }
 }

@@ -10,15 +10,15 @@ const users = router({
       return { msg: 'list' }
     }),
   getById: procedure()
-    .use((ctx) => {
+    .use(({ ctx }) => {
       console.log('middleware', ctx)
       return { userId: 1 }
     })
-    .use(({ ctx }) => {
-      console.log('middleware2', ctx)
-      ctx.userId = 2
-      return ctx
-    })
+    // .use(({ ctx }) => {
+    //   console.log('middleware2', ctx)
+    //   ctx.userId = 2
+    //   return ctx
+    // })
     .meta({ title: 'Get user by ID' })
     .input(z.object({ id: z.number() }))
     .output(z.object({ name: z.string() }))
