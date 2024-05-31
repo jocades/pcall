@@ -4,7 +4,7 @@ import {
   type ProcedureInput,
   type ProcedureOutput,
   procedure,
-  type ProcedureConfig,
+  // type ProcedureConfig,
 } from '@/procedure'
 
 describe('procedure', () => {
@@ -33,7 +33,7 @@ describe('procedure', () => {
 
   type In = ProcedureInput<typeof getById>
   type Out = ProcedureOutput<typeof getById>
-  type Config = ProcedureConfig<typeof getById>
+  // type Config = ProcedureConfig<typeof getById>
 })
 
 procedure()

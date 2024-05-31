@@ -1,7 +1,5 @@
 import { z } from 'zod'
-import { isObject } from './util'
-import type { ErrorMessage } from './types'
-import { parseInput, parseOutput, pipe } from './rpc'
+import { parseInput, parseOutput } from './rpc'
 
 /**
  * @module Procedure
@@ -14,18 +12,12 @@ import { parseInput, parseOutput, pipe } from './rpc'
  * F -> Function
  */
 
-export interface Procedure<
-  I extends z.ZodTypeAny,
-  O extends z.ZodTypeAny,
-  C,
-  R,
-> {
+export interface Procedure<I, O, C> {
   $input: I
   $output: O
-  $context: C
-  action: Middleware<I, C, R>
-  // middlewares: Middleware<I, C, unknown>[]
+  // $context: C
   $procedure?: true
+  meta?: Meta
   (opts: AnyConfig): unknown
 }
 
@@ -37,19 +29,18 @@ export type Config<I extends z.ZodType, C> = I extends z.ZodUndefined
   ? { ctx: C }
   : { ctx: C; input: I['_output'] }
 
-export type AnyConfig = { ctx: any; input: any }
-
 export type Middleware<I extends z.ZodType, C, R> = (opts: Config<I, C>) => R
-export type AnyMiddleware = (opts: AnyConfig) => any
 
 export interface Meta {
-  // title?: string
   description?: string
 }
 
+/**
+ * @internal
+ */
 interface Internals<I extends z.ZodType, O extends z.ZodType, C> {
-  inputSchema: I
-  outputSchema: O
+  input: I
+  output: O
   context: C
   meta: Meta
 }
@@ -65,6 +56,35 @@ class Chain<T extends AnyMiddleware> extends Array<T> {
   }
 }
 
+/**
+ * @internal Do not expose this function. Core implementation of the procedure.
+ */
+function createProcedure<I extends z.ZodType, O extends z.ZodType, C>(
+  internals: Internals<I, O, C>,
+  middlewares: Chain<AnyMiddleware>,
+  resolver: Middleware<I, C, O['_output']>,
+): Procedure<I, O['_output'], C> {
+  /**
+   * @description The actual implementation.
+   */
+  function call({ input, ctx }: AnyConfig) {
+    input = parseInput(input, internals.input)
+
+    // @ts-expect-error TODO: Fix type
+    const dispatch = middlewares.pipe(resolver)
+    const result = dispatch({ input, ctx })
+
+    return parseOutput(result, internals.output)
+  }
+
+  return Object.assign(call, {
+    $input: internals.input,
+    $output: internals.output,
+    $procedure: true as const,
+    meta: internals.meta,
+  })
+}
+
 export class ProcedureBuilder<I extends z.ZodType, O extends z.ZodType, C> {
   #internals: Internals<I, O, C>
   #middlewares = new Chain()
@@ -75,8 +95,8 @@ export class ProcedureBuilder<I extends z.ZodType, O extends z.ZodType, C> {
 
   static default<T>() {
     return new ProcedureBuilder({
-      inputSchema: z.undefined(),
-      outputSchema: z.undefined(),
+      input: z.undefined(),
+      output: z.undefined(),
       context: undefined as T,
       meta: {},
     })
@@ -88,39 +108,21 @@ export class ProcedureBuilder<I extends z.ZodType, O extends z.ZodType, C> {
   }
 
   input<S extends z.ZodType>(schema: S): ProcedureBuilder<S, O, C> {
-    this.#internals.inputSchema = schema as any
+    this.#internals.input = schema as any
     return this as any
     // return new ProcedureBuilder({ ...this.#internals, inputSchema: schema })
   }
 
   output<S extends z.ZodType>(schema: S): ProcedureBuilder<I, S, C> {
-    this.#internals.outputSchema = schema as any
+    this.#internals.output = schema as any
     return this as any
     // return new ProcedureBuilder({ ...this.#internals, outputSchema: schema })
   }
 
   action<R extends O extends z.ZodUndefined ? any : O['_output']>(
     resolver: Middleware<I, C, R>,
-  ): Procedure<I, O, C, R> {
-    return Object.assign(
-      ({ input, ctx }: AnyConfig) => {
-        input = parseInput(input, this.#internals.inputSchema)
-
-        // TODO: Fix type
-        // @ts-ignore
-        const dispatch = this.#middlewares.pipe(resolver)
-        const result = dispatch({ input, ctx })
-
-        return parseOutput(result, this.#internals.outputSchema)
-      },
-      {
-        $input: this.#internals.inputSchema,
-        $output: this.#internals.outputSchema,
-        $context: this.#internals.context,
-        $procedure: true as const,
-        action: resolver,
-      },
-    )
+  ): Procedure<I, R, C> {
+    return createProcedure(this.#internals, this.#middlewares, resolver)
   }
 
   /**
@@ -128,7 +130,6 @@ export class ProcedureBuilder<I extends z.ZodType, O extends z.ZodType, C> {
    *
    * @param callback - A function which recieves the context from the previous
    *   procedure and returns the modified context or a new context.
-   *
    * @example
    * ```ts
    * procedure()
@@ -151,19 +152,21 @@ export function isProcedure(value: unknown): value is AnyProcedure {
   return typeof value === 'function' && '$procedure' in value
 }
 
-// Use for type inference
-export type AnyProcedure = Procedure<any, any, any, any>
-export type AnyProcedureBuilder = ProcedureBuilder<any, any, any>
-
 // Inference utils
 export type ProcedureInput<T extends AnyProcedure> =
   T['$input']['_output'] extends undefined ? void : T['$input']['_output']
 
-export type ProcedureOutput<T extends AnyProcedure> = ReturnType<T['action']>
+export type ProcedureOutput<T extends AnyProcedure> = T['$output']
 
-export type ProcedureContext<T extends AnyProcedure> = T['$context']
+// export type ProcedureContext<T extends AnyProcedure> = T['$context']
 
-export type ProcedureConfig<T extends AnyProcedure> = Config<
-  T['$input'],
-  T['$context']
->
+// export type ProcedureConfig<T extends AnyProcedure> = Config<
+//   T['$input'],
+//   T['$context']
+// >
+
+// Use for type inference
+export type AnyProcedure = Procedure<any, any, any>
+export type AnyProcedureBuilder = ProcedureBuilder<any, any, any>
+export type AnyConfig = { ctx: any; input: any }
+export type AnyMiddleware = (opts: AnyConfig) => any

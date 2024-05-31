@@ -1,55 +1,35 @@
-import { createRecursiveProxy } from './proxy'
+import type { AppRouter } from '../test/router.test'
+import { createProxy } from './proxy'
 import { type Router } from './router'
-import { type RPCResponse } from './rpc'
-import { type rpc } from './types'
+import { type DecorateCaller, type rpc } from './types'
 
-const baseURL = 'http://localhost:3000/api'
+// const url = new URL('http://localhost:8000')
 
-// const resolver: {
-// [K in keyof rpc.DecorateCall<any>]: any
-// } = {
-const resolver = {
-  exec: async (url: URL, args: any[]) => {
-    if (args[0]) {
-      url.searchParams.set('input', JSON.stringify(args[0]))
-    }
+async function _fetch(url: URL, body: unknown) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  })
 
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    })
-
-    return ((await res.json()) as RPCResponse<any>).data
-  },
-  useMutation: () => {
-    return {
-      mutate: async (url: string, args: any[]) => {
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(args),
-        })
-        return ((await res.json()) as RPCResponse<any>).data
-      },
-      isPending: false,
-      error: null,
-    }
-  },
+  return res.json()
 }
 
-export type Resolver = typeof resolver
-
-export function createClient<T extends Router>() {
-  return createRecursiveProxy(function self(path, args) {
-    // const url = `${baseURL}?path=${path.slice(0, -1).join('.')}`
-    const url = new URL(baseURL)
-
-    url.searchParams.set('path', path.slice(0, -1).join('.'))
-
-    // console.log('proxy callback', url, args)
-
-    const method = path[path.length - 1] as keyof typeof resolver
-
-    return resolver[method](url, args)
-  }, []) as rpc.infer<T>
+interface ClientConfig {
+  url: string
 }
+
+export function createClient<T extends Router>(config: ClientConfig) {
+  const url = new URL(config.url)
+
+  return createProxy<DecorateCaller<T>>((path, args) => {
+    url.searchParams.set('p', path.join('.'))
+    return _fetch(url, args[0])
+  }, [])
+}
+
+const api = createClient<AppRouter>({
+  url: 'http://localhost:8000',
+})
+
+const r1 = await api.users.getById({ id: 1 })

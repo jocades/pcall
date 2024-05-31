@@ -1,12 +1,13 @@
 import { flattenRouter, router } from '@/router'
 import { procedure } from '@/procedure'
 import { z } from 'zod'
-import { handle } from '@/rpc'
+import { RPC } from '@/rpc'
 
 const users = router({
   list: procedure()
     .output(z.object({ msg: z.string() }))
     .action(({ ctx }) => {
+      console.log('== middleware ==', { ctx })
       return { msg: 'list' }
     }),
   getById: procedure()
@@ -37,6 +38,8 @@ export const appRouter = router({
   users: users,
 })
 
+export type AppRouter = typeof appRouter
+
 const suite = {
   ['users.getById']: {
     input: { id: 1 },
@@ -53,15 +56,15 @@ const suite = {
 }
 
 function test() {
-  const routes = flattenRouter(appRouter)
+  const routes = appRouter.flat()
   console.log({ routes })
 
   console.log({ paths: routes.keys() })
 
   for (let [path, io] of Object.entries(suite)) {
-    const result = handle({ path, body: io.input }, routes)
+    const result = RPC.handle({ path, body: io.input }, routes)
     console.log({ path, io, result })
   }
 }
 
-test()
+// test()

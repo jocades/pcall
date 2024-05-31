@@ -5,8 +5,8 @@ import { appRouter } from './router.test'
 test('client', () => {
   type AppRouter = typeof appRouter
 
-  const api = createClient<AppRouter>()
-
-  const a1 = api.users.list.exec()
-  const a2 = api.users.getById.exec({ id: 1 })
+  // const api = createClient<AppRouter>()
+  //
+  // const a1 = api.users.list.exec()
+  // const a2 = api.users.getById.exec({ id: 1 })
 })

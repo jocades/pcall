@@ -1,17 +1,15 @@
-export function createRecursiveProxy<T>(
+export function createProxy<T>(
   callback: (path: string[], args: unknown[]) => unknown,
   path: string[],
 ) {
   const proxy: unknown = new Proxy(() => {}, {
     get(_targ, key) {
-      console.log('proxy get', key)
       if (typeof key !== 'string' || key === 'then') {
         return undefined
       }
-      return createRecursiveProxy(callback, [...path, key])
+      return createProxy(callback, [...path, key])
     },
     apply(_targ, _thisArg, args) {
-      console.log('proxy apply', args)
       const isApply = path[path.length - 1] === 'apply'
       return callback(
         isApply ? path.slice(0, -1) : path,

@@ -1,15 +1,8 @@
 import { z } from 'zod'
-import { RPCError, error } from './error'
-import { type FlatRouter, type Router, flattenRouter, router } from './router'
-import { Err, Ok, type Result } from './types'
+import { error } from './error'
+import { type FlatRouter, router } from './router'
+import { Err } from './types'
 import { ProcedureBuilder } from './procedure'
-
-import type {
-  AnyConfig,
-  AnyMiddleware,
-  AnyProcedure,
-  Config,
-} from '@/procedure'
 
 export interface RPCRequest {
   path: string
@@ -18,6 +11,28 @@ export interface RPCRequest {
 
 export interface RPCResponse<T> {
   data: T
+}
+
+export class RPC<C> {
+  router = router
+
+  get procedure() {
+    return ProcedureBuilder.default<C>()
+  }
+
+  static handle(req: RPCRequest, router: FlatRouter, ctx?: unknown) {
+    const procedure = router.get(req.path)
+
+    if (!procedure) {
+      throw error('NOT_FOUND', `Path not found: ${req.path}`)
+    }
+
+    try {
+      return procedure({ input: req.body, ctx })
+    } catch (err: any) {
+      throw error('INTERNAL_SERVER_ERROR', err.message)
+    }
+  }
 }
 
 class RPCBuilder<C> {
@@ -30,49 +45,8 @@ class RPCBuilder<C> {
   }
 }
 
-class RPC<C> {
-  router = router
-
-  get procedure() {
-    return ProcedureBuilder.default<C>()
-  }
-}
-
 export function initRPC() {
   return new RPCBuilder()
-}
-
-export function handle(req: RPCRequest, router: FlatRouter) {
-  const procedure = router.get(req.path)
-
-  if (!procedure) {
-    return Err(error('NOT_FOUND', `Path not found: ${req.path}`))
-  }
-
-  try {
-    // return call(procedure, { input: req.body, ctx: undefined })
-    return procedure({ input: req.body, ctx: undefined })
-  } catch (err: any) {
-    return Err(error('INTERNAL_SERVER_ERROR', err.message))
-  }
-}
-
-// export function call(procedure: AnyProcedure, { input, ctx }: AnyConfig) {
-//   input = parseInput(input, procedure.$input)
-//
-//   const dispatch = pipe(procedure.middlewares)
-//   const result = dispatch({ input, ctx })
-//
-//   return parseOutput(result, procedure.$output)
-// }
-
-export function pipe(middlewares: AnyMiddleware[], resolver: AnyMiddleware) {
-  return function dispatch(opts: AnyConfig) {
-    for (const fn of middlewares) {
-      opts.ctx = fn(opts)
-    }
-    return resolver(opts)
-  }
 }
 
 export function parseInput(input: unknown, schema: z.ZodTypeAny) {
@@ -81,7 +55,7 @@ export function parseInput(input: unknown, schema: z.ZodTypeAny) {
   }
   const parsed = schema.safeParse(input)
   if (!parsed.success) {
-    throw new Error(`Invalid input: ${parsed.error.message}`)
+    throw error('BAD_REQUEST', parsed.error.message)
   }
   return parsed.data
 }
@@ -92,7 +66,7 @@ export function parseOutput(output: unknown, schema: z.ZodTypeAny) {
   }
   const parsed = schema.safeParse(output)
   if (!parsed.success) {
-    throw new Error(`Invalid output: ${parsed.error.message}`)
+    throw error('INTERNAL_SERVER_ERROR', parsed.error.message)
   }
   return parsed.data
 }

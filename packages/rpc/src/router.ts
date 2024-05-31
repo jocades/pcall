@@ -1,28 +1,35 @@
 import { type AnyProcedure, isProcedure } from './procedure'
 import { isObject } from './util'
 
-export type Router = {
+export interface RouterDef {
   [key: string]: AnyProcedure | Router
-} & {
-  $router?: true
 }
 
-export function router<T extends Router>(def: T): T {
-  def.$router = true
-  return def
+export type Router<T extends RouterDef = RouterDef> = {
+  $def: T
+  $router: true
+  flat(): FlatRouter
+}
+
+export function router<T extends RouterDef>(def: T): Router<T> {
+  return {
+    $def: def,
+    $router: true,
+    flat: () => flattenRouter(def),
+  }
 }
 
 export type FlatRouter = Map<string, AnyProcedure>
 
-export function flattenRouter(router: Router): FlatRouter {
+export function flattenRouter(router: RouterDef): FlatRouter {
   const flatRouter: FlatRouter = new Map()
 
-  function flatten(router: Router, path = '') {
+  function flatten(router: RouterDef, path = '') {
     for (let [key, procOrRouter] of Object.entries(router)) {
       let newPath = `${path}${key}`
 
       if (isRouter(procOrRouter)) {
-        flatten(procOrRouter, newPath + '.')
+        flatten(procOrRouter.$def, newPath + '.')
         continue
       }
 
