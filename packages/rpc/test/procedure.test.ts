@@ -23,7 +23,7 @@ describe('procedure', () => {
   })
 
   const getById = procedure()
-    .meta({ title: 'Get a user by ID' })
+    .meta({ description: 'Get a user by ID' })
     .use(({ ctx }) => ({ userId: 1 }))
     .input(z.object({ id: z.number() }))
     .output(z.object({ plusOne: z.number() }))

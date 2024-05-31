@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { isObject } from './util'
 import type { ErrorMessage } from './types'
+import { parseInput, parseOutput, pipe } from './rpc'
 
 /**
  * @module Procedure
@@ -23,8 +24,9 @@ export interface Procedure<
   $output: O
   $context: C
   action: Middleware<I, C, R>
-  middlewares: Middleware<I, C, unknown>[]
+  // middlewares: Middleware<I, C, unknown>[]
   $procedure?: true
+  (opts: AnyConfig): unknown
 }
 
 export function procedure() {
@@ -35,14 +37,14 @@ export type Config<I extends z.ZodType, C> = I extends z.ZodUndefined
   ? { ctx: C }
   : { ctx: C; input: I['_output'] }
 
-export type AnyConfig = { ctx: any; input?: any }
+export type AnyConfig = { ctx: any; input: any }
 
 export type Middleware<I extends z.ZodType, C, R> = (opts: Config<I, C>) => R
-export type AnyMiddleware = Middleware<any, any, any>
+export type AnyMiddleware = (opts: AnyConfig) => any
 
 export interface Meta {
-  title?: string
-  desc?: string
+  // title?: string
+  description?: string
 }
 
 interface Internals<I extends z.ZodType, O extends z.ZodType, C> {
@@ -52,29 +54,32 @@ interface Internals<I extends z.ZodType, O extends z.ZodType, C> {
   meta: Meta
 }
 
+class Chain<T extends AnyMiddleware> extends Array<T> {
+  pipe(resolver: T) {
+    return (opts: AnyConfig) => {
+      for (const middleware of this) {
+        opts.ctx = middleware(opts)
+      }
+      return resolver(opts)
+    }
+  }
+}
+
 export class ProcedureBuilder<I extends z.ZodType, O extends z.ZodType, C> {
   #internals: Internals<I, O, C>
-  #middlewares: Middleware<I, C, unknown>[] = []
+  #middlewares = new Chain()
 
   private constructor(internals: Internals<I, O, C>) {
     this.#internals = internals
   }
 
   static default<T>() {
-    return new ProcedureBuilder(this.defaults<T>())
-  }
-
-  static withContext<T>(context: T) {
-    return new ProcedureBuilder({ ...this.defaults(), context })
-  }
-
-  private static defaults<T>() {
-    return {
+    return new ProcedureBuilder({
       inputSchema: z.undefined(),
       outputSchema: z.undefined(),
-      context: undefined as unknown as T,
+      context: undefined as T,
       meta: {},
-    }
+    })
   }
 
   meta(data: Meta): ProcedureBuilder<I, O, C> {
@@ -95,17 +100,27 @@ export class ProcedureBuilder<I extends z.ZodType, O extends z.ZodType, C> {
   }
 
   action<R extends O extends z.ZodUndefined ? any : O['_output']>(
-    callback: Middleware<I, C, R>,
+    resolver: Middleware<I, C, R>,
   ): Procedure<I, O, C, R> {
-    this.#middlewares.push(callback)
-    return {
-      $input: this.#internals.inputSchema,
-      $output: this.#internals.outputSchema,
-      $context: this.#internals.context,
-      middlewares: this.#middlewares,
-      $procedure: true,
-      action: callback,
-    }
+    return Object.assign(
+      ({ input, ctx }: AnyConfig) => {
+        input = parseInput(input, this.#internals.inputSchema)
+
+        // TODO: Fix type
+        // @ts-ignore
+        const dispatch = this.#middlewares.pipe(resolver)
+        const result = dispatch({ input, ctx })
+
+        return parseOutput(result, this.#internals.outputSchema)
+      },
+      {
+        $input: this.#internals.inputSchema,
+        $output: this.#internals.outputSchema,
+        $context: this.#internals.context,
+        $procedure: true as const,
+        action: resolver,
+      },
+    )
   }
 
   /**
@@ -126,19 +141,15 @@ export class ProcedureBuilder<I extends z.ZodType, O extends z.ZodType, C> {
    *  ```
    */
   use<R>(callback: Middleware<I, C, R>): ProcedureBuilder<I, O, R> {
-    this.#middlewares.push(callback)
+    // TODO: Fix type
+    this.#middlewares.push(callback as AnyMiddleware)
     return this as any
   }
 }
 
 export function isProcedure(value: unknown): value is AnyProcedure {
-  return isObject(value) && '$procedure' in value
+  return typeof value === 'function' && '$procedure' in value
 }
-
-type BuilderNoUse<I extends z.ZodType, O extends z.ZodType, C> = Omit<
-  ProcedureBuilder<I, O, C>,
-  'use'
->
 
 // Use for type inference
 export type AnyProcedure = Procedure<any, any, any, any>
@@ -156,14 +167,3 @@ export type ProcedureConfig<T extends AnyProcedure> = Config<
   T['$input'],
   T['$context']
 >
-// T extends Procedure<infer I, any, infer C, any>
-//   ? Config<I, C>
-//   : ErrorMessage<'Invalid procedure', T>
-
-// exposed builder
-// type ProcedureBuilder<
-//   I extends z.ZodTypeAny = z.ZodUndefined,
-//   O extends z.ZodTypeAny = z.ZodUndefined,
-//   C = undefined,
-//   TOmit extends string = never,
-// > = Omit<$ProcedureBuilder<I, O, C>, '$internals' | 'next' | TOmit>

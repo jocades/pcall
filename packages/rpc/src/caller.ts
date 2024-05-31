@@ -6,4 +6,4 @@ export function createCaller<T extends Router>(router: T) {
   return createRecursiveProxy(function self(path, args) {}, []) as rpc.infer<T>
 }
 
-const caller = createCaller()
+// const caller = createCaller()

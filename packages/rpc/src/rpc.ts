@@ -31,21 +31,16 @@ class RPCBuilder<C> {
 }
 
 class RPC<C> {
-  procedure = ProcedureBuilder.default<C>()
   router = router
+
+  get procedure() {
+    return ProcedureBuilder.default<C>()
+  }
 }
 
-function initRPC() {
+export function initRPC() {
   return new RPCBuilder()
 }
-
-function createContext() {
-  return { userId: 1 }
-}
-
-type Context = ReturnType<typeof createContext>
-
-const rpc = initRPC().context<Context>().build()
 
 export function handle(req: RPCRequest, router: FlatRouter) {
   const procedure = router.get(req.path)
@@ -55,36 +50,32 @@ export function handle(req: RPCRequest, router: FlatRouter) {
   }
 
   try {
-    return call(procedure, { input: req.body, ctx: undefined })
+    // return call(procedure, { input: req.body, ctx: undefined })
+    return procedure({ input: req.body, ctx: undefined })
   } catch (err: any) {
     return Err(error('INTERNAL_SERVER_ERROR', err.message))
   }
 }
 
-function call(procedure: AnyProcedure, { input, ctx }: AnyConfig) {
-  input = parseInput(input, procedure.$input)
+// export function call(procedure: AnyProcedure, { input, ctx }: AnyConfig) {
+//   input = parseInput(input, procedure.$input)
+//
+//   const dispatch = pipe(procedure.middlewares)
+//   const result = dispatch({ input, ctx })
+//
+//   return parseOutput(result, procedure.$output)
+// }
 
-  const dispatch = pipe(procedure.middlewares)
-  const result = dispatch({ input, ctx })
-
-  return parseOutput(result, procedure.$output)
-}
-
-function pipe<T extends AnyConfig>(middlewares: AnyMiddleware[]) {
-  // return function dispatch(opts: T) {
-  //   return middlewares.reduce((acc, fn) => fn(acc), opts)
-  // }
-  return function dispatch(opts: T) {
-    let i = 0
-    for (; i < middlewares.length; i++) {
-      if (i == middlewares.length - 1) break
-      opts.ctx = middlewares[i](opts)
+export function pipe(middlewares: AnyMiddleware[], resolver: AnyMiddleware) {
+  return function dispatch(opts: AnyConfig) {
+    for (const fn of middlewares) {
+      opts.ctx = fn(opts)
     }
-    return middlewares[i](opts)
+    return resolver(opts)
   }
 }
 
-function parseInput(input: unknown, schema: z.ZodTypeAny) {
+export function parseInput(input: unknown, schema: z.ZodTypeAny) {
   if (!isZodSchema(schema) || isZodUndefined(schema)) {
     return input
   }
@@ -95,7 +86,7 @@ function parseInput(input: unknown, schema: z.ZodTypeAny) {
   return parsed.data
 }
 
-function parseOutput(output: unknown, schema: z.ZodTypeAny) {
+export function parseOutput(output: unknown, schema: z.ZodTypeAny) {
   if (!isZodSchema(schema) || isZodUndefined(schema)) {
     return output
   }
@@ -106,10 +97,10 @@ function parseOutput(output: unknown, schema: z.ZodTypeAny) {
   return parsed.data
 }
 
-function isZodSchema(value: unknown): value is z.ZodTypeAny {
+export function isZodSchema(value: unknown): value is z.ZodTypeAny {
   return value instanceof z.ZodType
 }
 
-function isZodUndefined(value: unknown): value is z.ZodUndefined {
+export function isZodUndefined(value: unknown): value is z.ZodUndefined {
   return value instanceof z.ZodUndefined
 }

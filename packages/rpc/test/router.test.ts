@@ -11,19 +11,19 @@ const users = router({
     }),
   getById: procedure()
     .use(({ ctx }) => {
-      console.log('middleware', ctx)
+      console.log('== middleware ==', { ctx })
       return { userId: 1 }
     })
-    // .use(({ ctx }) => {
-    //   console.log('middleware2', ctx)
-    //   ctx.userId = 2
-    //   return ctx
-    // })
-    .meta({ title: 'Get user by ID' })
+    .use(({ ctx }) => {
+      console.log('middleware2', { ctx })
+      ctx.userId = 2
+      return ctx
+    })
+    .meta({ description: 'Get user by ID' })
     .input(z.object({ id: z.number() }))
     .output(z.object({ name: z.string() }))
     .action(({ input, ctx }) => {
-      console.log('action', { input, ctx })
+      console.log('== action ==', { input, ctx })
       return { name: 'Jordi' }
     }),
   // .input(z.object({ id: z.number() }))
@@ -54,6 +54,7 @@ const suite = {
 
 function test() {
   const routes = flattenRouter(appRouter)
+  console.log({ routes })
 
   console.log({ paths: routes.keys() })
 
