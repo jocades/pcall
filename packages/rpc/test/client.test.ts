@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { createClient } from '@/client'
+import { client } from '@/client'
 import { appRouter } from './router.test'
 
 test('client', () => {

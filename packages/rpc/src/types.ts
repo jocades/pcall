@@ -13,31 +13,29 @@ export type MaybePromise<T> = T | Promise<T>
 
 export type Unwrap<T> = T extends Promise<infer R> ? R : T
 
-/** Infer the return type of a function which returns a promise or not */
+/** Infer the return type of a function which may return a promise */
 export type Use<T extends (...args: any[]) => MaybePromise<any>> = Unwrap<
   ReturnType<T>
 >
-
-export namespace rpc {
-  export type DecorateClient<T extends RouterDef> = {
-    [K in keyof T]: T[K] extends Router
-      ? DecorateClient<T[K]['$def']>
-      : T[K] extends AnyProcedure
-        ? DecorateCall<T[K]>
-        : ErrorMessage<'Invalid route definition', T[K]>
-  }
-
-  export type DecorateCall<T extends AnyProcedure> = {
-    exec(input: ProcedureInput<T>): ProcedureOutput<T>
-  }
-}
 
 export type DecorateCaller<T extends RouterDef> = {
   [K in keyof T]: T[K] extends Router
     ? DecorateCaller<T[K]['$def']>
     : T[K] extends AnyProcedure
-      ? (input: ProcedureInput<T[K]>) => ProcedureOutput<T[K]>
+      ? (input: ProcedureInput<T[K]>) => MaybePromise<ProcedureOutput<T[K]>>
       : ErrorMessage<'Invalid route definition', T[K]>
+}
+
+export type DecorateReactClient<T extends RouterDef> = {
+  [K in keyof T]: T[K] extends Router
+    ? DecorateReactClient<T[K]['$def']>
+    : T[K] extends AnyProcedure
+      ? DecorateReactCall<T[K]>
+      : ErrorMessage<'Invalid route definition', T[K]>
+}
+
+type DecorateReactCall<T extends AnyProcedure> = {
+  exec(input: ProcedureInput<T>): ProcedureOutput<T>
 }
 
 /** @internal */

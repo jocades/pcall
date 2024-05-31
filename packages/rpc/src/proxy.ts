@@ -1,6 +1,6 @@
 export function createProxy<T>(
   callback: (path: string[], args: unknown[]) => unknown,
-  path: string[],
+  path: string[] = [],
 ) {
   const proxy: unknown = new Proxy(() => {}, {
     get(_targ, key) {

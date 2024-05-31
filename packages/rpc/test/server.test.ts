@@ -1,3 +1,6 @@
+import { RPC } from '@/rpc'
+import { appRouter } from './router.test'
+
 interface User {
   id: number
   name: string
@@ -29,3 +32,11 @@ const newUser = db.users.create({ name: 'Pepe' })
 console.log(users, newUser)
 const deletedUser = db.users.deleteById(2)
 console.log(users, deletedUser)
+
+RPC.serve({
+  router: appRouter,
+  context: {
+    db,
+    user: { id: 1 },
+  },
+})

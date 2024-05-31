@@ -1,7 +1,7 @@
-import { createProxy } from './proxy'
-import { type Router } from './router'
-import { type RPCResponse } from './rpc'
-import { type rpc } from './types'
+import { createProxy } from '@/proxy'
+import { type Router } from '@/router'
+import { type DecorateReactClient } from '@/types'
+import type { RPCResponse } from './server'
 
 const baseURL = 'http://localhost:3000/api'
 
@@ -40,7 +40,7 @@ const resolver = {
 export type Resolver = typeof resolver
 
 export function createClient<T extends Router>() {
-  return createProxy((path, args) => {
+  return createProxy<DecorateReactClient<T['$def']>>((path, args) => {
     // const url = `${baseURL}?path=${path.slice(0, -1).join('.')}`
     const url = new URL(baseURL)
 
@@ -51,5 +51,5 @@ export function createClient<T extends Router>() {
     const method = path[path.length - 1] as keyof typeof resolver
 
     return resolver[method](url, args)
-  }, []) as rpc.DecorateClient<T>
+  })
 }

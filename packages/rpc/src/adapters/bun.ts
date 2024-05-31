@@ -1,42 +1,9 @@
 import { RPC } from '@/rpc'
-import { flattenRouter, type Router } from '@/router'
 import { RPCError } from '@/error'
-import type { AnyObject } from '@/types'
 import type { Serve } from 'bun'
+import { json, res, type ServeConfig } from '@/server'
 
-async function json<T>(req: Request) {
-  try {
-    return (await req.json()) as T
-  } catch (err) {
-    if (err instanceof SyntaxError) {
-      return undefined
-    }
-    throw err
-  }
-}
-
-const res = {
-  json(data: unknown, status = 200) {
-    return new Response(JSON.stringify(data), {
-      headers: { 'Content-Type': 'application/json' },
-      status,
-    })
-  },
-  text(data: string, status = 200) {
-    return new Response(data, {
-      headers: { 'Content-Type': 'text/plain' },
-      status,
-    })
-  },
-}
-
-export interface ServerConfig {
-  router: Router
-  context?: AnyObject | ((req: Request) => AnyObject)
-  port?: number
-}
-
-export function handle(config: ServerConfig): Serve {
+export function handle(config: ServeConfig): Serve {
   const router = config.router.flat()
 
   return {
@@ -71,9 +38,4 @@ export function handle(config: ServerConfig): Serve {
       }
     },
   }
-}
-
-export function serve(config: ServerConfig) {
-  Bun.serve(handle(config))
-  console.log('Listening on http://localhost:8000')
 }

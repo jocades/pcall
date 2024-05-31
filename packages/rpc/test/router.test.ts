@@ -1,4 +1,4 @@
-import { flattenRouter, router } from '@/router'
+import { router } from '@/router'
 import { procedure } from '@/procedure'
 import { z } from 'zod'
 import { RPC } from '@/rpc'

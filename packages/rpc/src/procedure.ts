@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { parseInput, parseOutput } from './rpc'
+import { parseInput, parseOutput } from '@/server'
 
 /**
  * @module Procedure
@@ -17,7 +17,7 @@ export interface Procedure<I, O, C> {
   $output: O
   // $context: C
   $procedure?: true
-  meta?: Meta
+  meta: Meta
   (opts: AnyConfig): unknown
 }
 
@@ -35,25 +35,12 @@ export interface Meta {
   description?: string
 }
 
-/**
- * @internal
- */
+/** @internal */
 interface Internals<I extends z.ZodType, O extends z.ZodType, C> {
   input: I
   output: O
   context: C
   meta: Meta
-}
-
-class Chain<T extends AnyMiddleware> extends Array<T> {
-  pipe(resolver: T) {
-    return (opts: AnyConfig) => {
-      for (const middleware of this) {
-        opts.ctx = middleware(opts)
-      }
-      return resolver(opts)
-    }
-  }
 }
 
 /**
@@ -83,6 +70,17 @@ function createProcedure<I extends z.ZodType, O extends z.ZodType, C>(
     $procedure: true as const,
     meta: internals.meta,
   })
+}
+
+class Chain<T extends AnyMiddleware> extends Array<T> {
+  pipe(resolver: T) {
+    return (opts: AnyConfig) => {
+      for (const middleware of this) {
+        opts.ctx = middleware(opts)
+      }
+      return resolver(opts)
+    }
+  }
 }
 
 export class ProcedureBuilder<I extends z.ZodType, O extends z.ZodType, C> {

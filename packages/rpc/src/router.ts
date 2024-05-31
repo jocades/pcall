@@ -1,4 +1,4 @@
-import { type AnyProcedure, isProcedure } from './procedure'
+import { type AnyProcedure } from './procedure'
 import { isObject } from './util'
 
 export interface RouterDef {
@@ -37,14 +37,18 @@ export function flattenRouter(router: RouterDef): FlatRouter {
         throw new Error(`Path already exists: ${newPath}`)
       }
 
-      if (isProcedure(procOrRouter)) {
-        flatRouter.set(newPath, procOrRouter)
-      }
+      flatRouter.set(newPath, procOrRouter)
     }
   }
   flatten(router)
 
   return flatRouter
+}
+
+export function createRouter() {
+  return function <T extends RouterDef>(def: T) {
+    return router(def)
+  }
 }
 
 export function isRouter(value: unknown): value is Router {
