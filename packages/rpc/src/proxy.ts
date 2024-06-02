@@ -1,8 +1,8 @@
 export function createProxy<T>(
   callback: (path: string[], args: unknown[]) => unknown,
   path: string[] = [],
-) {
-  const proxy: unknown = new Proxy(() => {}, {
+): T {
+  return new Proxy(() => {}, {
     get(_targ, key) {
       if (typeof key !== 'string' || key === 'then') {
         return undefined
@@ -16,7 +16,5 @@ export function createProxy<T>(
         isApply ? (args.length >= 2 ? args[1] : []) : args,
       )
     },
-  })
-
-  return proxy as T
+  }) as unknown as T
 }

@@ -3,11 +3,12 @@ export function error(status: RPCErrorStatus, message: string): RPCError {
 }
 
 export class RPCError {
+  name = 'RPCError'
   status: RPCErrorStatus
   code: RPCErrorCode
-  message: string
+  message?: string
 
-  constructor(status: RPCErrorStatus, message: string) {
+  constructor(status: RPCErrorStatus, message?: string) {
     this.status = status
     this.code = RPC_ERROR_CODES_BY_STATUS[status]
     this.message = message

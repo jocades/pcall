@@ -1,5 +1,5 @@
 import { type AnyProcedure } from './procedure'
-import { isObject } from './util'
+import { isObj } from './util'
 
 export interface RouterDef {
   [key: string]: AnyProcedure | Router
@@ -8,6 +8,9 @@ export interface RouterDef {
 export type Router<T extends RouterDef = RouterDef> = {
   $def: T
   $router: true
+  /**
+   * Flatten the router into a map of paths to procedures.
+   */
   flat(): FlatRouter
 }
 
@@ -45,12 +48,14 @@ export function flattenRouter(router: RouterDef): FlatRouter {
   return flatRouter
 }
 
-export function createRouter() {
+// Retrun closures to infer global types like context, meta, etc.
+// Pass them to the router and procedures to infer their types.
+function createRouter() {
   return function <T extends RouterDef>(def: T) {
     return router(def)
   }
 }
 
 export function isRouter(value: unknown): value is Router {
-  return isObject(value) && '$router' in value
+  return isObj(value) && '$router' in value
 }

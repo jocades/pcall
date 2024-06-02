@@ -9,12 +9,12 @@ import {
 
 describe('procedure', () => {
   function mw() {
-    return { userId: 1 }
+    return { user: { id: 1 } }
   }
 
   const authed = procedure().use(mw)
 
-  const authedList = authed.action((config) => {
+  const authedList = authed.action((opts) => {
     return { msg: 'list' }
   })
 

@@ -1,8 +1,9 @@
 import { z } from 'zod'
-import { error } from './error'
+import { error, type RPCErrorStatus } from './error'
 import { type FlatRouter, type Router } from './router'
-import { handle as bunHandler } from '@/adapters/bun'
+import { handle as bunHandler } from './adapters/bun'
 import type { AnyObject } from './types'
+import { isObj } from './util'
 
 export interface RPCRequest {
   path: string
@@ -34,9 +35,7 @@ export interface ServeConfig {
 }
 
 export function serve(config: ServeConfig) {
-  const server = Bun.serve(bunHandler(config))
-  console.log(`Listening on ${server.url}`)
-  return server
+  return Bun.serve(bunHandler(config))
 }
 
 export async function json<T>(req: Request) {
@@ -50,41 +49,57 @@ export async function json<T>(req: Request) {
   }
 }
 
+export function cors() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  }
+}
+
+// how to change the data of the response?
+
 export const res = {
   json(data: unknown, status = 200) {
     return new Response(JSON.stringify(data), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...cors() },
       status,
     })
   },
   text(data: string, status = 200) {
     return new Response(data, {
-      headers: { 'Content-Type': 'text/plain' },
+      headers: { 'Content-Type': 'text/plain', ...cors() },
       status,
     })
   },
 }
 
-export function parseInput(input: unknown, schema: z.ZodTypeAny) {
-  if (!isZodSchema(schema) || isZodUndefined(schema)) {
-    return input
+export function parse(data: unknown, schema: unknown, status: RPCErrorStatus) {
+  if (!schema) {
+    return data
   }
-  const parsed = schema.safeParse(input)
+
+  let parser: z.ZodTypeAny
+
+  if (isZodSchema(schema)) parser = schema
+  else if (isObj(schema)) parser = z.object(schema)
+  else throw error('INTERNAL_SERVER_ERROR', 'Invalid schema')
+
+  const parsed = parser.safeParse(data)
+
   if (!parsed.success) {
-    throw error('BAD_REQUEST', parsed.error.message)
+    throw error(status, parsed.error.message)
   }
+
   return parsed.data
 }
 
-export function parseOutput(output: unknown, schema: z.ZodTypeAny) {
-  if (!isZodSchema(schema) || isZodUndefined(schema)) {
-    return output
-  }
-  const parsed = schema.safeParse(output)
-  if (!parsed.success) {
-    throw error('INTERNAL_SERVER_ERROR', parsed.error.message)
-  }
-  return parsed.data
+export function parseInput(input: unknown, schema: unknown) {
+  return parse(input, schema, 'BAD_REQUEST')
+}
+
+export function parseOutput(output: unknown, schema: unknown) {
+  return parse(output, schema, 'INTERNAL_SERVER_ERROR')
 }
 
 export function isZodSchema(value: unknown): value is z.ZodTypeAny {

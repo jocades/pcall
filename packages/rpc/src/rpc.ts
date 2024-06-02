@@ -1,6 +1,7 @@
-import { router } from '@/router'
-import { ProcedureBuilder } from '@/procedure'
-import { handle, serve } from '@/server'
+import { router } from './router'
+import { ProcedureBuilder } from './procedure'
+import { handle, serve } from './server'
+import { RPCError } from './error'
 
 export class RPC<C> {
   router = router
@@ -8,6 +9,12 @@ export class RPC<C> {
 
   static handle = handle
   static serve = serve
+
+  static Error = RPCError
+}
+
+export function initRPC() {
+  return new RPCBuilder()
 }
 
 class RPCBuilder<C> {
@@ -18,8 +25,4 @@ class RPCBuilder<C> {
   build(): RPC<C> {
     return new RPC()
   }
-}
-
-export function initRPC() {
-  return new RPCBuilder()
 }

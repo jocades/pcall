@@ -1,21 +1,12 @@
-import { RPC } from '@/rpc'
-import { appRouter } from '../router.test'
+import { app } from '../router.test'
+import { handle } from '@/adapters/bun'
 
-RPC.serve({
-  router: appRouter,
+export default handle({
+  port: 8000,
+  router: app,
   context(req) {
     return {
       method: req.method,
     }
   },
 })
-
-/* export default handle({
-  port: 8000,
-  router: appRouter,
-  context(req) {
-    return {
-      method: req.method,
-    }
-  },
-}) */

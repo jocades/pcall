@@ -1,7 +1,7 @@
-import { createProxy } from '@/proxy'
-import { type Router } from '@/router'
-import { type RPCRequest } from '@/server'
-import type { DecorateCaller } from '@/types'
+import { createProxy } from './proxy'
+import { type Router } from './router'
+import { type RPCRequest } from './server'
+import type { DecorateCaller } from './types'
 import { RPC } from './rpc'
 
 /**
@@ -10,15 +10,15 @@ import { RPC } from './rpc'
  * Handy for testing.
  *
  * @param router - The router to create the caller for.
- * @returns A caller function.
+ * @returns The caller function.
  * ```ts
  * const caller = factory(appRouter)
  *
  * const apiA = caller({ user: { id: 1 } })
  * const apiB = caller({ user: null })
  *
- * apiA.users.getById({ id: 1 }) // => Ok
- * apiB.users.getById({ id: 1 }) // => Error
+ * apiA.users.list() // => Ok
+ * apiB.users.list() // => Err
  * ```
  */
 export function factory<T extends Router>(router: T) {

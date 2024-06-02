@@ -1,5 +1,6 @@
-import { RPC } from '@/rpc'
-import { appRouter } from './router.test'
+import { RPC, initRPC } from '@/rpc'
+// import { app } from './router.test'
+import { z } from 'zod'
 
 interface User {
   id: number
@@ -28,15 +29,27 @@ export const db = {
   },
 }
 
-const newUser = db.users.create({ name: 'Pepe' })
-console.log(users, newUser)
-const deletedUser = db.users.deleteById(2)
-console.log(users, deletedUser)
+const { router, procedure } = initRPC().build()
 
-RPC.serve({
-  router: appRouter,
+const app = router({
+  ping: procedure().action(() => 'pong'),
+  users: router({
+    list: procedure().action(() => db.users.find()),
+    getById: procedure()
+      .input(z.number().describe('The ID of the user to fetch'))
+      .action(({ input }) => {
+        console.log({ input })
+        return db.users.findById(input)
+      }),
+  }),
+})
+
+const server = RPC.serve({
+  router: app,
   context: {
-    db,
+    // db,
     user: { id: 1 },
   },
 })
+
+console.log(`🔥Listening at ${server.url.href.slice(0, -1)}`)

@@ -1,22 +1,15 @@
 import type { AnyProcedure, ProcedureInput, ProcedureOutput } from './procedure'
 import type { Router, RouterDef } from './router'
 
-export type AnyObject = Record<string, any>
+export type AnyObject<T = any> = Record<string, T>
 
-export type AnyFn = (...args: any[]) => any
+export type AnyFn<R = any> = (...args: any[]) => R
 
-export type AnyPromiseFn<T = any> = (...args: any[]) => Promise<T>
-
-export type Maybe<T> = T | undefined
-
-export type MaybePromise<T> = T | Promise<T>
+export type MaybePromise<T = any> = T | Promise<T>
 
 export type Unwrap<T> = T extends Promise<infer R> ? R : T
 
-/** Infer the return type of a function which may return a promise */
-export type Use<T extends (...args: any[]) => MaybePromise<any>> = Unwrap<
-  ReturnType<T>
->
+export type Use<T extends AnyFn<MaybePromise>> = Unwrap<ReturnType<T>>
 
 export type DecorateCaller<T extends RouterDef> = {
   [K in keyof T]: T[K] extends Router

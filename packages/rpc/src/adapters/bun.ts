@@ -1,7 +1,8 @@
-import { RPC } from '@/rpc'
-import { RPCError } from '@/error'
+import { RPC } from '../rpc'
+import { RPCError } from '../error'
 import type { Serve } from 'bun'
-import { json, res, type ServeConfig } from '@/server'
+import { cors, json, res, type ServeConfig } from '../server'
+import { isFn } from '../util'
 
 export function handle(config: ServeConfig): Serve {
   const router = config.router.flat()
@@ -12,20 +13,30 @@ export function handle(config: ServeConfig): Serve {
       const url = new URL(req.url)
       console.log(`${req.method} ${url.pathname} - ${url.search}`)
 
+      console.log({
+        referer: req.headers.get('Referer'),
+        origin: req.headers.get('Origin'),
+        host: req.headers.get('Host'),
+      })
+
+      if (req.method === 'OPTIONS') {
+        return new Response(null, { headers: cors() })
+      }
+
+      // return new Response('Hello World!', { headers: cors() })
+
       if (req.method !== 'POST') {
         return res.text('Method not allowed', 405)
       }
 
       const path = url.searchParams.get('p')
-      if (!path) return new Response('Bad request', { status: 400 })
+      if (!path)
+        return new Response('Bad request', { status: 400, headers: cors() })
 
       const body = await json(req)
       if (body) console.log(body)
 
-      const ctx =
-        typeof config.context === 'function'
-          ? config.context(req)
-          : config.context
+      const ctx = isFn(config.context) ? config.context(req) : config.context
 
       try {
         const result = RPC.handle({ path, body }, router, ctx)

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { parseInput, parseOutput } from '@/server'
+import { parseInput, parseOutput } from './server'
 
 /**
  * @module Procedure
@@ -15,10 +15,9 @@ import { parseInput, parseOutput } from '@/server'
 export interface Procedure<I, O, C> {
   $input: I
   $output: O
-  // $context: C
   $procedure?: true
   meta: Meta
-  (opts: AnyConfig): unknown
+  (opts: AnyConfig): O
 }
 
 export function procedure() {
@@ -54,29 +53,41 @@ function createProcedure<I extends z.ZodType, O extends z.ZodType, C>(
   /**
    * @description The actual implementation.
    */
-  function call({ input, ctx }: AnyConfig) {
+  async function call({ ctx, input }: AnyConfig) {
+    console.log('RUNNING PROCEDURE')
     input = parseInput(input, internals.input)
 
     // @ts-expect-error TODO: Fix type
     const dispatch = middlewares.pipe(resolver)
-    const result = dispatch({ input, ctx })
+
+    const result = await dispatch({ ctx, input })
+
+    console.log({ result })
 
     return parseOutput(result, internals.output)
   }
 
-  return Object.assign(call, {
+  call.$input = internals.input
+  call.$output = internals.output
+  call.$procedure = true as const
+  call.meta = internals.meta
+
+  return call
+
+  /* return Object.assign(call, {
     $input: internals.input,
     $output: internals.output,
     $procedure: true as const,
     meta: internals.meta,
-  })
+  }) */
 }
 
 class Chain<T extends AnyMiddleware> extends Array<T> {
   pipe(resolver: T) {
-    return (opts: AnyConfig) => {
-      for (const middleware of this) {
-        opts.ctx = middleware(opts)
+    return async (opts: AnyConfig) => {
+      // this.forEach((mw) => (opts.ctx = mw(opts)))
+      for (const mw of this) {
+        opts = await mw(opts)
       }
       return resolver(opts)
     }
@@ -117,7 +128,7 @@ export class ProcedureBuilder<I extends z.ZodType, O extends z.ZodType, C> {
     // return new ProcedureBuilder({ ...this.#internals, outputSchema: schema })
   }
 
-  action<R extends O extends z.ZodUndefined ? any : O['_output']>(
+  action<R extends O extends z.ZodUndefined ? any : Promise<O['_output']>>(
     resolver: Middleware<I, C, R>,
   ): Procedure<I, R, C> {
     return createProcedure(this.#internals, this.#middlewares, resolver)
@@ -127,7 +138,8 @@ export class ProcedureBuilder<I extends z.ZodType, O extends z.ZodType, C> {
    * Chain procedures to run in sequence and manage context.
    *
    * @param callback - A function which recieves the context from the previous
-   *   procedure and returns the modified context or a new context.
+   * procedure and returns the modified context or a new context.
+   *
    * @example
    * ```ts
    * procedure()

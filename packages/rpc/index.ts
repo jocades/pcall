@@ -17,6 +17,8 @@ export {
   type AnyProcedure,
 } from './src/procedure.ts'
 
+export { procedure } from './tproc.ts'
+
 export {
   // Server
   serve,

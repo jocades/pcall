@@ -7,7 +7,9 @@
   },
   "exports": {
     ".": "./index.ts",
-    "./bun": "./src/adapters/bun.ts"
+    "./bun": "./src/adapters/bun.ts",
+    "./fetch": "./src/adapters/fetch.ts",
+    "./express": "./src/adapters/express.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

@@ -1,12 +1,10 @@
-import { expect, test } from 'bun:test'
+import { test } from 'bun:test'
 import { client } from '@/client'
-import { appRouter } from './router.test'
+import { type AppRouter } from './router.test'
 
-test('client', () => {
-  type AppRouter = typeof appRouter
-
-  // const api = createClient<AppRouter>()
-  //
-  // const a1 = api.users.list.exec()
-  // const a2 = api.users.getById.exec({ id: 1 })
+test('client', async () => {
+  const api = client<AppRouter>({
+    url: 'http://localhost:8000',
+  })
+  const r1 = await api.users.getById({ id: 1 })
 })

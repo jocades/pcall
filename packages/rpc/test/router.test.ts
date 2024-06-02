@@ -33,12 +33,12 @@ const users = router({
   // }),
 })
 
-export const appRouter = router({
+export const app = router({
   ping: procedure().action(() => 'Pong!'),
   users: users,
 })
 
-export type AppRouter = typeof appRouter
+export type AppRouter = typeof app
 
 const suite = {
   ['users.getById']: {
@@ -56,7 +56,7 @@ const suite = {
 }
 
 function test() {
-  const routes = appRouter.flat()
+  const routes = app.flat()
   console.log({ routes })
 
   console.log({ paths: routes.keys() })

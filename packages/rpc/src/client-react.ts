@@ -5,9 +5,6 @@ import type { RPCResponse } from './server'
 
 const baseURL = 'http://localhost:3000/api'
 
-// const resolver: {
-// [K in keyof rpc.DecorateCall<any>]: any
-// } = {
 const resolver = {
   exec: async (url: URL, args: any[]) => {
     if (args[0]) {

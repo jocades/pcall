@@ -10,5 +10,5 @@ declare global {
 }
 
 ReactDOM.createRoot(document.querySelector('#root')!).render(
-  <App baseURL={window.__RPC_URL__} router={window.__RPC_ROUTER__} />,
+  <App url={window.__RPC_URL__} router={window.__RPC_ROUTER__} />,
 )
