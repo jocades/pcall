@@ -3,7 +3,6 @@ import { error, type RPCErrorStatus } from './error'
 import { type FlatRouter, type Router } from './router'
 import { handle as bunHandler } from './adapters/bun'
 import type { AnyObject } from './types'
-import { isObj } from './util'
 
 export interface RPCRequest {
   path: string
@@ -22,7 +21,7 @@ export function handle(req: RPCRequest, router: FlatRouter, ctx?: unknown) {
   }
 
   try {
-    return procedure({ input: req.body, ctx })
+    return procedure(req.body)
   } catch (err: any) {
     throw error('INTERNAL_SERVER_ERROR', err.message)
   }
@@ -57,8 +56,6 @@ export function cors() {
   }
 }
 
-// how to change the data of the response?
-
 export const res = {
   json(data: unknown, status = 200) {
     return new Response(JSON.stringify(data), {
@@ -74,18 +71,16 @@ export const res = {
   },
 }
 
-export function parse(data: unknown, schema: unknown, status: RPCErrorStatus) {
+export function parse<T>(
+  data: T,
+  schema: undefined | z.ZodTypeAny,
+  status: RPCErrorStatus
+) {
   if (!schema) {
     return data
   }
 
-  let parser: z.ZodTypeAny
-
-  if (isZodSchema(schema)) parser = schema
-  else if (isObj(schema)) parser = z.object(schema)
-  else throw error('INTERNAL_SERVER_ERROR', 'Invalid schema')
-
-  const parsed = parser.safeParse(data)
+  const parsed = schema.safeParse(data)
 
   if (!parsed.success) {
     throw error(status, parsed.error.message)
@@ -94,18 +89,14 @@ export function parse(data: unknown, schema: unknown, status: RPCErrorStatus) {
   return parsed.data
 }
 
-export function parseInput(input: unknown, schema: unknown) {
+export function parseInput<I>(input: I, schema: undefined | z.ZodTypeAny) {
   return parse(input, schema, 'BAD_REQUEST')
 }
 
-export function parseOutput(output: unknown, schema: unknown) {
+export function parseOutput<O>(output: O, schema: undefined | z.ZodTypeAny) {
   return parse(output, schema, 'INTERNAL_SERVER_ERROR')
 }
 
 export function isZodSchema(value: unknown): value is z.ZodTypeAny {
   return value instanceof z.ZodType
-}
-
-export function isZodUndefined(value: unknown): value is z.ZodUndefined {
-  return value instanceof z.ZodUndefined
 }

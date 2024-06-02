@@ -1,11 +1,11 @@
 import { router } from './router'
-import { ProcedureBuilder } from './procedure'
 import { handle, serve } from './server'
 import { RPCError } from './error'
+import { procedure } from './procedure'
 
 export class RPC<C> {
   router = router
-  procedure = () => ProcedureBuilder.default<C>()
+  procedure = () => procedure<C>()
 
   static handle = handle
   static serve = serve

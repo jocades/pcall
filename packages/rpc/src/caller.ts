@@ -1,8 +1,8 @@
 import { createProxy } from './proxy'
 import { type Router } from './router'
 import { type RPCRequest } from './server'
-import type { DecorateCaller } from './types'
 import { RPC } from './rpc'
+import type { DecorateCaller } from './types'
 
 /**
  * Create a caller function for a given router.

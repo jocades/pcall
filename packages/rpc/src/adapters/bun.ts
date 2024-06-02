@@ -39,7 +39,8 @@ export function handle(config: ServeConfig): Serve {
       const ctx = isFn(config.context) ? config.context(req) : config.context
 
       try {
-        const result = RPC.handle({ path, body }, router, ctx)
+        const result = await RPC.handle({ path, body }, router, ctx)
+        console.log({ result })
         return res.json(result)
       } catch (err) {
         if (err instanceof RPCError) {

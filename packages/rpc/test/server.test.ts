@@ -32,12 +32,12 @@ export const db = {
 const { router, procedure } = initRPC().build()
 
 const app = router({
-  ping: procedure().action(() => 'pong'),
+  ping: procedure().action(async () => 'pong'),
   users: router({
-    list: procedure().action(() => db.users.find()),
+    list: procedure().action(async () => db.users.find()),
     getById: procedure()
       .input(z.number().describe('The ID of the user to fetch'))
-      .action(({ input }) => {
+      .action(async ({ input }) => {
         console.log({ input })
         return db.users.findById(input)
       }),

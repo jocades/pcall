@@ -1,182 +1,199 @@
+import { isObj } from './util'
+import { isZodSchema, parseInput, parseOutput } from './server'
+import type { AnyFn, MaybePromise, ZodAny } from './types'
 import { z } from 'zod'
-import { parseInput, parseOutput } from './server'
 
 /**
  * @module Procedure
  * Type Map:
- * I -> Input Schema
- * O -> Output Schema
+ * I -> Input
+ * O -> Output
  * C -> Context
- * R -> Return Type
  * S -> Schema
- * F -> Function
+ * R -> Return Type
  */
 
-export interface Procedure<I, O, C> {
+export interface Procedure<I, O> {
   $input: I
   $output: O
-  $procedure?: true
-  meta: Meta
-  (opts: AnyConfig): O
-}
-
-export function procedure() {
-  return ProcedureBuilder.default()
-}
-
-export type Config<I extends z.ZodType, C> = I extends z.ZodUndefined
-  ? { ctx: C }
-  : { ctx: C; input: I['_output'] }
-
-export type Middleware<I extends z.ZodType, C, R> = (opts: Config<I, C>) => R
-
-export interface Meta {
-  description?: string
+  (input: Parse<I>): O
 }
 
 /** @internal */
-interface Internals<I extends z.ZodType, O extends z.ZodType, C> {
+interface Internals<I, O, C> {
   input: I
   output: O
   context: C
-  meta: Meta
 }
 
-/**
- * @internal Do not expose this function. Core implementation of the procedure.
- */
-function createProcedure<I extends z.ZodType, O extends z.ZodType, C>(
-  internals: Internals<I, O, C>,
-  middlewares: Chain<AnyMiddleware>,
-  resolver: Middleware<I, C, O['_output']>,
-): Procedure<I, O['_output'], C> {
-  /**
-   * @description The actual implementation.
-   */
-  async function call({ ctx, input }: AnyConfig) {
-    console.log('RUNNING PROCEDURE')
-    input = parseInput(input, internals.input)
+export type Middleware<I, O, C> = (c: Config<I, C>) => O
 
-    // @ts-expect-error TODO: Fix type
-    const dispatch = middlewares.pipe(resolver)
+export type Config<I, C> = I extends undefined
+  ? { ctx: C }
+  : { ctx: C; input: Parse<I> }
 
-    const result = await dispatch({ ctx, input })
-
-    console.log({ result })
-
-    return parseOutput(result, internals.output)
-  }
-
-  call.$input = internals.input
-  call.$output = internals.output
-  call.$procedure = true as const
-  call.meta = internals.meta
-
-  return call
-
-  /* return Object.assign(call, {
-    $input: internals.input,
-    $output: internals.output,
-    $procedure: true as const,
-    meta: internals.meta,
-  }) */
-}
-
-class Chain<T extends AnyMiddleware> extends Array<T> {
+class Chain<T extends AnyFn> extends Array<T> {
   pipe(resolver: T) {
-    return async (opts: AnyConfig) => {
-      // this.forEach((mw) => (opts.ctx = mw(opts)))
+    return async (c: AnyConfig) => {
       for (const mw of this) {
-        opts = await mw(opts)
+        c.ctx = await mw(c)
       }
-      return resolver(opts)
+      return resolver(c)
     }
   }
 }
 
-export class ProcedureBuilder<I extends z.ZodType, O extends z.ZodType, C> {
-  #internals: Internals<I, O, C>
-  #middlewares = new Chain()
+class Builder<I, O, C> {
+  private internals: AnyInternals
+  private middlewares = new Chain()
 
-  private constructor(internals: Internals<I, O, C>) {
-    this.#internals = internals
+  private constructor(config: Internals<I, O, C>) {
+    this.internals = config
   }
 
-  static default<T>() {
-    return new ProcedureBuilder({
-      input: z.undefined(),
-      output: z.undefined(),
-      context: undefined as T,
-      meta: {},
+  static default<T>(ctx?: T) {
+    return new Builder({
+      input: undefined,
+      output: undefined,
+      context: ctx as T, // remove the undefined
     })
   }
 
-  meta(data: Meta): ProcedureBuilder<I, O, C> {
-    this.#internals.meta = data
+  input<S extends Schema>(schema: S): Builder<S, O, C> {
+    if (!isZodSchema(schema) && isObj(schema)) {
+      this.internals.input = z.object(schema)
+    } else {
+      this.internals.input = schema
+    }
+    return this as any
+  }
+
+  output<S extends Schema>(schema: S): Builder<I, S, C> {
+    if (!isZodSchema(schema) && isObj(schema)) {
+      this.internals.output = z.object(schema)
+    } else {
+      this.internals.output = schema
+    }
     return this
   }
 
-  input<S extends z.ZodType>(schema: S): ProcedureBuilder<S, O, C> {
-    this.#internals.input = schema as any
-    return this as any
-    // return new ProcedureBuilder({ ...this.#internals, inputSchema: schema })
+  action<R extends O extends undefined ? any : Parse<O>>(
+    resolver: Middleware<I, Promise<R>, C>
+  ): Procedure<I, Promise<R>> {
+    return Object.assign(async (input: Parse<I>) => {
+      const config = {
+        ctx: this.internals.context,
+        input: parseInput(input, this.internals.input),
+      }
+
+      const dispatch = this.middlewares.pipe(resolver)
+      const result = await dispatch(config)
+
+      return parseOutput(result, this.internals.output)
+    })
   }
 
-  output<S extends z.ZodType>(schema: S): ProcedureBuilder<I, S, C> {
-    this.#internals.output = schema as any
-    return this as any
-    // return new ProcedureBuilder({ ...this.#internals, outputSchema: schema })
-  }
-
-  action<R extends O extends z.ZodUndefined ? any : Promise<O['_output']>>(
-    resolver: Middleware<I, C, R>,
-  ): Procedure<I, R, C> {
-    return createProcedure(this.#internals, this.#middlewares, resolver)
-  }
-
-  /**
-   * Chain procedures to run in sequence and manage context.
-   *
-   * @param callback - A function which recieves the context from the previous
-   * procedure and returns the modified context or a new context.
-   *
-   * @example
-   * ```ts
-   * procedure()
-   *   .use((ctx) => {
-   *     const session = getSession()
-   *     return { userId: session.userId }
-   *   })
-   *   .action(({ ctx }) => {
-   *   })
-   *  ```
-   */
-  use<R>(callback: Middleware<I, C, R>): ProcedureBuilder<I, O, R> {
-    // TODO: Fix type
-    this.#middlewares.push(callback as AnyMiddleware)
+  use<R>(middleware: Middleware<I, MaybePromise<R>, C>): Builder<I, O, R> {
+    this.middlewares.push(middleware)
     return this as any
   }
 }
 
-export function isProcedure(value: unknown): value is AnyProcedure {
-  return typeof value === 'function' && '$procedure' in value
+export function procedure<C>(ctx?: C) {
+  return Builder.default<C>(ctx)
 }
 
-// Inference utils
-export type ProcedureInput<T extends AnyProcedure> =
-  T['$input']['_output'] extends undefined ? void : T['$input']['_output']
+export type Schema = Record<string, ZodAny> | ZodAny
 
-export type ProcedureOutput<T extends AnyProcedure> = T['$output']
+export type Parse<T> = T extends ZodAny
+  ? T['_output']
+  : T extends Record<string, ZodAny>
+  ? z.ZodObject<T>['_output']
+  : Expected<ZodAny, T>
 
-// export type ProcedureContext<T extends AnyProcedure> = T['$context']
+export type AnyConfig = Config<any, any>
+export type AnyInternals = Internals<any, any, any>
+export type AnyProcedure = Procedure<any, any>
 
-// export type ProcedureConfig<T extends AnyProcedure> = Config<
-//   T['$input'],
-//   T['$context']
-// >
+const proc = procedure()
+  .input({ user: z.string() })
+  .action(async (c) => {
+    console.log(c)
+    return 'Hello World!'
+  })
 
-// Use for type inference
-export type AnyProcedure = Procedure<any, any, any>
-export type AnyProcedureBuilder = ProcedureBuilder<any, any, any>
-export type AnyConfig = { ctx: any; input: any }
-export type AnyMiddleware = (opts: AnyConfig) => any
+const withCtx = procedure()
+  .input({ i: z.string() })
+  .use((c) => {
+    console.log('middleware', c)
+    return { user: 'hello' }
+  })
+  .output({ o: z.number() })
+  .action(async (c) => {
+    console.log('action', c)
+    return { o: 1 }
+  })
+
+const res = await withCtx({ i: 'hello' })
+console.log({ res })
+
+type I = typeof withCtx.$input
+type O = typeof withCtx.$output
+
+type Expected<TExp, TGot> = {
+  exp: TExp
+  got: TGot
+}
+
+const inObj = { a: z.number() }
+const inZod = z.number()
+const inZodObj = z.object({ a: z.string() })
+
+const nested = {
+  a: z.number(),
+  b: z.object({
+    c: z.string(),
+  }),
+}
+
+type InObj = Parse<typeof inObj>
+type Nested = Parse<typeof nested>
+type InZod = Parse<typeof inZod>
+type InZodObj = Parse<typeof inZodObj>
+
+// i want to be able to merge the inputs as the user goes .input({ a: z.number() }).input({ b: z.string()
+// -> input = { a: number, b: string }
+// instead of overwriting the input
+
+type One = { a: z.ZodNumber }
+type Two = { b: z.ZodString }
+
+interface Ext extends One, Two {}
+type Inter = One & Two
+
+type What<T> = T extends Record<string, any> ? true : false
+type Why<T> = T extends Record<string, ZodAny> ? true : false
+
+type X = What<Ext>
+type Y = What<Inter>
+
+type W = Why<Ext>
+type Z = Why<Inter>
+
+type NotWorks = Parse<Ext>
+type Works = Parse<Inter>
+
+// Works with intersection types!
+
+// merging schemas
+const one = { a: z.number() }
+const two = { b: z.string() }
+
+// works as expected
+type Merged = Parse<typeof one & typeof two>
+
+const s1 = z.object({ b: z.number() })
+const s2 = z.object({ b: z.number() })
+
+// weird can have two keys with the same name
+type MergedZod = Parse<typeof s1 & typeof s2>

@@ -48,14 +48,6 @@ export function flattenRouter(router: RouterDef): FlatRouter {
   return flatRouter
 }
 
-// Retrun closures to infer global types like context, meta, etc.
-// Pass them to the router and procedures to infer their types.
-function createRouter() {
-  return function <T extends RouterDef>(def: T) {
-    return router(def)
-  }
-}
-
 export function isRouter(value: unknown): value is Router {
   return isObj(value) && '$router' in value
 }

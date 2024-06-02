@@ -1,8 +1,8 @@
-import { getUser } from './actions'
+import { getPost } from './actions'
 import { Component } from './component'
 
 export default async function Home() {
-  const data = await getUser({ userId: 1 })
+  const data = await getPost({ postId: 1 })
   console.log({ data })
 
   return (

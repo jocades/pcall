@@ -1,7 +1,7 @@
 import { router } from '@/router'
-import { procedure } from '@/procedure'
 import { z } from 'zod'
 import { RPC } from '@/rpc'
+import { procedure } from '@/procedure'
 
 const users = router({
   list: procedure()

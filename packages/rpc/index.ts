@@ -15,9 +15,7 @@ export {
   // Procedure
   type Procedure,
   type AnyProcedure,
-} from './src/procedure.ts'
-
-export { procedure } from './tproc.ts'
+} from './src/procedure.bak.ts'
 
 export {
   // Server

@@ -16,15 +16,13 @@ export function randomKey(obj: Record<any, any>) {
 
 export function bench<T extends AnyFn>(
   fn: T,
-  times = 1,
+  times = 1
 ): ReturnType<T> extends Promise<infer R>
   ? (...args: Parameters<T>) => Promise<void>
   : (...args: Parameters<T>) => void {
-  let isAsync = fn.constructor.name === 'AsyncFunction'
+  const runs: number[] = []
 
-  let runs = []
-
-  if (isAsync) {
+  if (fn.constructor.name === 'AsyncFunction') {
     return (async (...args: Parameters<T>) => {
       for (let i = 0; i < times; i++) {
         let start = performance.now()
@@ -40,8 +38,8 @@ export function bench<T extends AnyFn>(
 
   return ((...args: Parameters<T>) => {
     for (let i = 0; i < times; i++) {
-      fn(...args)
       let start = performance.now()
+      fn(...args)
       let elapsed = performance.now() - start
       runs.push(elapsed)
     }

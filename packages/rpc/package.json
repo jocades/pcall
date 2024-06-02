@@ -8,14 +8,14 @@
   "exports": {
     ".": "./index.ts",
     "./bun": "./src/adapters/bun.ts",
-    "./fetch": "./src/adapters/fetch.ts",
-    "./express": "./src/adapters/express.ts"
+    "./next": "./src/adapters/next.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
     "zod": "^3.23.8"
   },
   "peerDependencies": {
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "zod": "^3.23.8"
   }
 }

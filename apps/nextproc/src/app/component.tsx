@@ -1,17 +1,17 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getUser } from './actions'
+import { getPost } from './actions'
 import { Use } from '../../../../packages/rpc/src/types'
 
 interface ComponentProps {}
 
 export function Component(props: ComponentProps) {
-  const [state, setState] = useState<Use<typeof getUser>>()
+  const [state, setState] = useState<Use<typeof getPost>>()
 
   useEffect(() => {
     const get = async () => {
-      const data = await getUser({ userId: 2 })
+      const data = await getPost({ postId: 2 })
       setState(data)
     }
 
