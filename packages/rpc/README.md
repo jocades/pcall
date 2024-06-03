@@ -58,7 +58,7 @@ procedure()
 
 ### 2.1. Middleware
 
-Add middlewares to the procedure, the return value will be assigned to the context.
+Add middlewares to the procedure to create a chain of actions. The return value of the middleware will be assigned to the procedures `context`.
 
 ```ts
 const getUser = procedure()
@@ -109,9 +109,9 @@ export const createPost = procedure()
   .action(async (c) => await db.posts.create(c.input))
 ```
 
-Then just call it as a regular server action in the server or client to get the result.
+Then just call it like a regular server action from a server or client component.
 
-- Server side example.
+- Server component.
 
 ```tsx
 // app/posts/[id]/page.tsx
@@ -125,7 +125,7 @@ export default async function Page({ params }) {
 }
 ```
 
-- Client side example with React Query.
+- Client component with React Query.
 
 ```tsx
 // components/post-form.tsx
@@ -184,6 +184,23 @@ export const app = router({
 export type AppRouter = typeof app // export the type for the client (if needed)
 ```
 
+### 4.1. Handle requests.
+
+```ts
+import { app } from './app'
+
+// Initialze the router, setup inner machinery.
+const handle = app.init()
+
+const req = {
+  path: 'users.list',
+  body: undefined,
+}
+
+// Handle the request.
+const result = handle(req)
+```
+
 ## 5. Server
 
 Serve the router with the standalone server. It uses the Bun server under the hood.
@@ -228,6 +245,8 @@ const api = client<AppRouter>({ url: 'http://localhost:8000' })
 
 const data = await api.posts.getById({ postId: 1 })
 ```
+
+The parameters and return type will be inferred from the the router type and some TypesSript magic so that there is no need to import the router itslef in the client, just the type.
 
 ## X. Examples
 
