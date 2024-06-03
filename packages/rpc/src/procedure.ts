@@ -149,31 +149,6 @@ export type AnyConfig = Config<any, any>
 export type AnyInternals = Internals<any, any, any>
 export type AnyProcedure = Procedure<any, any>
 
-const proc = procedure()
-  .input({ user: z.string() })
-  .action(async (c) => {
-    console.log(c)
-    return 'Hello World!'
-  })
-
-const withCtx = procedure()
-  .input({ i: z.string() })
-  .use((c) => {
-    console.log('middleware', c)
-    return { user: 'hello' }
-  })
-  .output({ o: z.number() })
-  .action(async (c) => {
-    console.log('action', c)
-    return { o: 1 }
-  })
-
-const res = await withCtx({ i: 'hello' })
-console.log({ res })
-
-type I = typeof withCtx.$input
-type O = typeof withCtx.$output
-
 type Expected<TExp, TGot> = {
   exp: TExp
   got: TGot

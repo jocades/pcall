@@ -106,6 +106,7 @@ export const getPost = procedure()
 export const createPost = procedure()
   .use(auth)
   .input({ title: z.string() })
+  .output(postSchema)
   .action(async (c) => await db.posts.create(c.input))
 ```
 
@@ -184,12 +185,12 @@ export const app = router({
 export type AppRouter = typeof app // export the type for the client (if needed)
 ```
 
-### 4.1. Handle requests.
+### 4.1. Initialize the router and handle requests.
 
 ```ts
 import { app } from './app'
 
-// Initialze the router, setup inner machinery.
+// Setup inner machinery.
 const handle = app.init()
 
 const req = {
@@ -203,7 +204,7 @@ const result = handle(req)
 
 ## 5. Server
 
-Serve the router with the standalone server. It uses the Bun server under the hood.
+Serve the router with a standalone server. Powered by the blazing fast [Bun HTTP server](https://bun.sh/docs/api/http).
 
 ```ts
 import { serve } from '@jcel/rpc'
@@ -235,7 +236,7 @@ curl -X POST 'localhost:8000?p=users.list' # -> [...]
 
 ## 6. Client
 
-Create a HTTP client to call the procedures over the network. It uses a [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) and the standard fetch API.
+Create a client to call the procedures over the network. It uses a [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) and the web standard fetch API.
 
 ```ts
 import { client } from '@jcel/rpc'
@@ -246,7 +247,7 @@ const api = client<AppRouter>({ url: 'http://localhost:8000' })
 const data = await api.posts.getById({ postId: 1 })
 ```
 
-The parameters and return type will be inferred from the the router type and some TypesSript magic so that there is no need to import the router itslef in the client, just the type.
+The **parameters** and **return type** will be **inferred** from the router type and some TypeScript magic so there is no need to import the router itself in the client side, just the type.
 
 ## X. Examples
 
