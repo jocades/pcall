@@ -16,12 +16,14 @@ import { error, type RPCErrorStatus } from './error'
 export interface Procedure<I, O> {
   $input: Parse<I>
   $output: O
-  (input: Parse<I>, ctx?: unknown): O
+  (input: ParseInput<I>, ctx?: unknown): Promise<O>
 }
 
-export function procedure<C>(): Builder<undefined, undefined, C> {
+export function procedure<C>() {
   return Builder.default<C>()
 }
+
+export type Schema = Record<string, z.ZodType> | z.ZodType
 
 export type Middleware<I, O, C> = (c: Config<I, C>) => O
 
@@ -80,8 +82,8 @@ export class Builder<I, O, C> {
   }
 
   action<R extends O extends undefined ? any : Parse<O>>(
-    resolver: Middleware<I, Promise<R>, C>,
-  ): Procedure<I, Promise<R>> {
+    resolver: Middleware<I, MaybePromise<R>, C>
+  ): Procedure<I, R> {
     return Object.assign(async (input: Parse<I>, ctx?: unknown) => {
       const config = {
         ctx,
@@ -103,8 +105,8 @@ export class Builder<I, O, C> {
 
 export function parse<T>(
   data: T,
-  schema: undefined | z.ZodTypeAny,
-  status: RPCErrorStatus,
+  schema: undefined | z.ZodType,
+  status: RPCErrorStatus
 ) {
   if (!schema) {
     return data
@@ -131,13 +133,17 @@ export function isZodSchema(value: unknown): value is z.ZodTypeAny {
   return value instanceof z.ZodType
 }
 
-export type Schema = Record<string, z.ZodType> | z.ZodType
-
 export type Parse<T> = T extends z.ZodType
   ? T['_output']
   : T extends Record<string, z.ZodType>
-    ? z.ZodObject<T>['_output']
-    : Expected<z.ZodType, T>
+  ? z.ZodObject<T>['_output']
+  : Expected<z.ZodType, T>
+
+export type ParseInput<T> = T extends z.ZodType
+  ? T['_input']
+  : T extends Record<string, z.ZodType>
+  ? z.ZodObject<T>['_input']
+  : Expected<z.ZodType, T>
 
 export type AnyConfig = Config<any, any>
 export type AnyInternals = Internals<any, any, any>

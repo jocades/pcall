@@ -1,7 +1,7 @@
 'use server'
 
-import { procedure } from 'rpc'
 import { z } from 'zod'
+import { procedure } from 'rpc'
 
 async function getSession(dont = false) {
   return dont ? null : { user: { id: 1, name: 'John Doe' } }
