@@ -40,7 +40,6 @@ export function handle(config: ServeConfig): Serve {
         : config.context
 
       try {
-        // const result = await RPC.handle({ path, body }, router, ctx)
         const result = await handle({ path, body }, ctx)
         console.log({ result })
         return res.json(result)

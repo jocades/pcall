@@ -41,8 +41,8 @@ export type FlatRouter = Map<string, AnyProcedure>
 export async function handle(
   req: RPCRequest,
   router: FlatRouter,
-  ctx?: unknown
-) {
+  ctx?: unknown,
+): Promise<unknown> {
   const procedure = router.get(req.path)
 
   if (!procedure) {

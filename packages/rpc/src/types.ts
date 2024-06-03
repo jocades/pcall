@@ -1,12 +1,9 @@
-import type { z } from 'zod'
 import type { Router, RouterDef } from './router'
 import type { Parse, Procedure } from './procedure'
 
 export type AnyObject<T = any> = Record<string, T>
 
 export type AnyFn<R = any> = (...args: any[]) => R
-
-export type ZodAny = z.ZodTypeAny
 
 export type MaybePromise<T = any> = T | Promise<T>
 
@@ -18,8 +15,8 @@ export type DecorateCaller<T extends RouterDef> = {
   [K in keyof T]: T[K] extends Router
     ? DecorateCaller<T[K]['$def']>
     : T[K] extends Procedure<infer I, infer O>
-    ? (input: I extends undefined ? void : Parse<I>) => O
-    : ErrorMessage<'Invalid route definition', T[K]>
+      ? (input: I extends undefined ? void : Parse<I>) => O
+      : ErrorMessage<'Invalid route definition', T[K]>
 }
 
 /** @internal */

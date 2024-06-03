@@ -8,8 +8,6 @@ import type { DecorateCaller } from './types'
  * Pass a context object to the caller to use it in the procedures.
  * Handy for testing.
  *
- * @param router - The router to create the caller for.
- * @returns The caller function.
  * ```ts
  * const caller = factory(appRouter)
  *
@@ -19,8 +17,13 @@ import type { DecorateCaller } from './types'
  * apiA.users.list() // => Ok
  * apiB.users.list() // => Err
  * ```
+ *
+ * @param router - The router to create the caller for.
+ * @returns A caller function.
  */
-export function factory<T extends Router>(router: T) {
+export function factory<T extends Router>(
+  router: T
+): (ctx?: unknown) => DecorateCaller<T['$def']> {
   const handle = router.init()
 
   return function caller(ctx?: unknown) {

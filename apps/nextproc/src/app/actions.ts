@@ -1,15 +1,15 @@
 'use server'
 
-import { procedure } from 'rpc/next'
+import { procedure } from 'rpc'
 import { z } from 'zod'
 
-function getSession(dont = false) {
+async function getSession(dont = false) {
   return dont ? null : { user: { id: 1, name: 'John Doe' } }
 }
 
 export const getPost = procedure()
-  .use(() => {
-    const session = getSession()
+  .use(async () => {
+    const session = await getSession()
     if (!session) throw new Error('Unauthorized')
     return { user: session.user }
   })

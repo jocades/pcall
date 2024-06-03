@@ -3,7 +3,7 @@ export {
   initRPC,
   type RPCRequest,
   type RPCResponse,
-} from './src/rpc.ts'
+} from './src/rpc'
 
 export {
   // Router,
@@ -12,26 +12,26 @@ export {
   type Router,
   type RouterDef,
   type FlatRouter,
-} from './src/router.ts'
+} from './src/router'
 
 export {
   // Procedure
   procedure,
   type Procedure,
   type AnyProcedure,
-} from './src/procedure.ts'
+} from './src/procedure'
 
 export {
   // Server
   serve,
   type ServeConfig,
-} from './src/server.ts'
+} from './src/server'
 
 // Caller
-export { factory } from './src/caller.ts'
+export { factory } from './src/caller'
 
 // Client
-export { client, type ClientConfig } from './src/client.ts'
+export { client, type ClientConfig } from './src/client'
 
 // Error
-export { RPCError } from './src/error.ts'
+export { RPCError } from './src/error'

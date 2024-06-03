@@ -1,21 +1,39 @@
 {
-  "name": "rpc",
-  "module": "index.ts",
+  "name": "@jcel/rpc",
   "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "version": "0.0.7",
+  "author": "Jordi Calafat",
+  "license": "MIT",
   "scripts": {
-    "dev": "bun run ./test/server.test.ts"
+    "dev": "bun run ./test/server.test.ts",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "lint": "tsc --noEmit --project tsconfig.build.json"
   },
   "exports": {
-    ".": "./index.ts",
-    "./bun": "./src/adapters/bun.ts",
-    "./next": "./src/adapters/next.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./bun": {
+      "types": "./dist/src/adapters/bun.d.ts",
+      "import": "./dist/src/adapters/bun.js",
+      "require": "./dist/src/adapters/bun.js"
+    }
   },
+  "files": [
+    "src",
+    "dist",
+    "README.md"
+  ],
   "devDependencies": {
     "@types/bun": "latest",
-    "zod": "^3.23.8"
+    "zod": "^3.0.0"
   },
   "peerDependencies": {
     "typescript": "^5.0.0",
-    "zod": "^3.23.8"
+    "zod": "^3.0.0"
   }
 }

@@ -1,6 +1,7 @@
 import { type Router } from './router'
 import { handle } from './adapters/bun'
 import type { AnyObject, MaybePromise } from './types'
+import type { Server } from 'bun'
 
 export interface ServeConfig {
   port?: number
@@ -8,7 +9,7 @@ export interface ServeConfig {
   context?: AnyObject | ((req: Request) => MaybePromise<AnyObject>)
 }
 
-export function serve(config: ServeConfig) {
+export function serve(config: ServeConfig): Server {
   return Bun.serve(handle(config))
 }
 

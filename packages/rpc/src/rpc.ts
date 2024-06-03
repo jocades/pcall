@@ -1,6 +1,5 @@
-import { router, type FlatRouter } from './router'
-import { error } from './error'
-import { procedure } from './procedure'
+import { router } from './router'
+import { Builder } from './procedure'
 
 export interface RPCRequest {
   path: string
@@ -14,7 +13,7 @@ export interface RPCResponse<T> {
 export function initRPC<C>() {
   return {
     router,
-    procedure: () => procedure<C>(),
+    procedure: () => Builder.default<C>(),
   }
 }
 
@@ -32,12 +31,19 @@ export function initRPC<C>() {
 //   return new RPCBuilder()
 // }
 
+// export function initRPC<C>() {
+//   return new RPCBuilder<C>()
+// }
+
 // class RPCBuilder<C> {
 //   context<T extends C>(): RPCBuilder<T> {
 //     return this as any
 //   }
-
-//   build(): RPC<C> {
-//     return new RPC()
+//
+//   build() {
+//     return {
+//       router,
+//       procedure:
+//     }
 //   }
 // }

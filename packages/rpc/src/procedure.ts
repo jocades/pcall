@@ -1,5 +1,5 @@
 import { isObj } from './util'
-import type { AnyFn, MaybePromise, ZodAny } from './types'
+import type { AnyFn, MaybePromise } from './types'
 import { z } from 'zod'
 import { error, type RPCErrorStatus } from './error'
 
@@ -19,7 +19,7 @@ export interface Procedure<I, O> {
   (input: Parse<I>, ctx?: unknown): O
 }
 
-export function procedure<C>() {
+export function procedure<C>(): Builder<undefined, undefined, C> {
   return Builder.default<C>()
 }
 
@@ -45,7 +45,7 @@ class Chain<T extends AnyFn> extends Array<T> {
   }
 }
 
-class Builder<I, O, C> {
+export class Builder<I, O, C> {
   private internals: AnyInternals
   private middlewares = new Chain()
 
@@ -80,7 +80,7 @@ class Builder<I, O, C> {
   }
 
   action<R extends O extends undefined ? any : Parse<O>>(
-    resolver: Middleware<I, Promise<R>, C>
+    resolver: Middleware<I, Promise<R>, C>,
   ): Procedure<I, Promise<R>> {
     return Object.assign(async (input: Parse<I>, ctx?: unknown) => {
       const config = {
@@ -104,7 +104,7 @@ class Builder<I, O, C> {
 export function parse<T>(
   data: T,
   schema: undefined | z.ZodTypeAny,
-  status: RPCErrorStatus
+  status: RPCErrorStatus,
 ) {
   if (!schema) {
     return data
@@ -131,13 +131,13 @@ export function isZodSchema(value: unknown): value is z.ZodTypeAny {
   return value instanceof z.ZodType
 }
 
-export type Schema = Record<string, ZodAny> | ZodAny
+export type Schema = Record<string, z.ZodType> | z.ZodType
 
-export type Parse<T> = T extends ZodAny
+export type Parse<T> = T extends z.ZodType
   ? T['_output']
-  : T extends Record<string, ZodAny>
-  ? z.ZodObject<T>['_output']
-  : Expected<ZodAny, T>
+  : T extends Record<string, z.ZodType>
+    ? z.ZodObject<T>['_output']
+    : Expected<z.ZodType, T>
 
 export type AnyConfig = Config<any, any>
 export type AnyInternals = Internals<any, any, any>
@@ -200,7 +200,7 @@ interface Ext extends One, Two {}
 type Inter = One & Two
 
 type What<T> = T extends Record<string, any> ? true : false
-type Why<T> = T extends Record<string, ZodAny> ? true : false
+type Why<T> = T extends Record<string, z.ZodType> ? true : false
 
 type X = What<Ext>
 type Y = What<Inter>

@@ -1,6 +1,5 @@
-import type { Router } from 'rpc'
-import { router } from '../rpc/src/router'
-import { procedure } from '../rpc/src/procedure'
+import { procedure, router, type Router } from 'rpc'
+import { handle } from 'rpc/bun'
 import { z } from 'zod'
 
 function toB64(str: string) {
