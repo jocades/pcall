@@ -9,7 +9,7 @@ Remote Procedure Call (RPC) over HTTP with end to end validation and type safety
 ## 1. Installation
 
 ```bash
-bun install @jcel/rpc zod
+bun add @jcel/rpc zod
 ```
 
 ## 2. Procedure
@@ -56,7 +56,9 @@ procedure()
   .action(() => 1) // error: expected string, got number
 ```
 
-Add middlewares to the procedure, the return value will be passed to the next handler's context.
+### 2.1. Middleware
+
+Add middlewares to the procedure, the return value will be assigned to the context.
 
 ```ts
 const getUser = procedure()
@@ -77,7 +79,7 @@ Define a middleware once and reuse it across multiple procedures.
 const authed = procedure().use(async () => {
   const session = await getSession()
   if (!session) throw new Error('Unauthorized')
-  return { user: session.user }
+  return { user: session.user.name }
 })
 
 const hello = authed.action(({ ctx }) => `Hello ${ctx.user}!`)
@@ -94,17 +96,27 @@ Since server actions are just functions, you can use a procedure as a server act
 import { z } from 'zod'
 import { procedure } from '@jcel/rpc'
 import { db, postSchema } from './db'
+import { auth } from './auth'
 
 export const getPost = procedure()
   .input({ postId: z.coerce.number() })
   .output(postSchema)
   .action(async (c) => await db.posts.findById(c.input.postId))
+
+export const createPost = procedure()
+  .use(auth)
+  .input({ title: z.string() })
+  .action(async (c) => await db.posts.create(c.input))
 ```
 
 Then just call it as a regular server action in the server or client to get the result.
 
+- Server side example.
+
 ```tsx
 // app/posts/[id]/page.tsx
+
+import { getPost } from '@/actions'
 
 export default async function Page({ params }) {
   const post = await getPost({ postId: params.id })
@@ -113,9 +125,44 @@ export default async function Page({ params }) {
 }
 ```
 
+- Client side example with React Query.
+
+```tsx
+// components/post-form.tsx
+
+'use client'
+
+import { useMutation } from 'react-query'
+import { createPost } from '@/actions'
+
+export function PostForm() {
+  const [title, setTitle] = useState('')
+
+  const { mutate, error, isPending } = useMutation({
+    mutationKey: ['create-post'],
+    mutationFn: createPost,
+  })
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault()
+        mutate({ title })
+      }}
+    >
+      <input value={title} onChange={(e) => setTitle(e.target.value)} />
+      {error && <div>{error.message}</div>}
+      <button type="submit" disabled={isPending}>
+        Submit
+      </button>
+    </form>
+  )
+}
+```
+
 ## 4. Router
 
-Compose procedures using a router and handle HTTP requests.
+Compose procedures using a router.
 
 ```ts
 import { router, procedure } from '@jcel/rpc'
@@ -159,7 +206,7 @@ const server = serve({
 console.log(`🔥 Listening at ${server.url.href}`)
 ```
 
-Then run the server and call the procedures over the network.
+Run the server and call the procedures over the network.
 
 ```bash
 bun run server.ts
@@ -184,7 +231,7 @@ const data = await api.posts.getById({ postId: 1 })
 
 ## X. Examples
 
-### X.1 Client with React Query
+### X.1. Client with React Query
 
 ```tsx
 import { useQuery } from 'react-query'
