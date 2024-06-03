@@ -236,7 +236,7 @@ curl -X POST 'localhost:8000?p=users.list' # -> [...]
 
 ## 6. Client
 
-Create a client to call the procedures over the network. It uses a [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) and the web standard fetch API.
+Create a client to call the procedures over the network with end to end type safety. It uses a [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) and the web standard fetch API.
 
 ```ts
 import { client } from '@jcel/rpc'
