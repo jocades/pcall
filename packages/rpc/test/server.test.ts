@@ -57,24 +57,17 @@ const server = serve({
   },
 })
 
-console.log(`🔥Listening at ${server.url.href.slice(0, -1)}`)
+// console.log(`🔥Listening at ${server.url.href.slice(0, -1)}`)
 
-const int = z.string().transform((v) => {
-  const n = parseInt(v)
-  if (isNaN(n)) throw new Error('Invalid number')
-  return n
-})
+// const int = z.string().transform((v) => {
+//   const n = parseInt(v)
+//   if (isNaN(n)) throw new Error('Invalid number')
+//   return n
+// })
 
-const what = procedure()
-  .input(int)
-  .action(async (c) => {})
+// const what = procedure()
+//   .input(int)
+//   .action(async (c) => {})
 
-what('10')
+// what('10')
 // make a zod schema that takes a string a parse to a vlid number
-
-const co = z.coerce.number()
-
-co.parse('10')
-
-type In = (typeof int)['_input']
-type Out = (typeof int)['_output']

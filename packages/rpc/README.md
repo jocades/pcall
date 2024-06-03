@@ -28,7 +28,7 @@ const hello = procedure()
 const result = await hello({ name: 'World' })
 ```
 
-The input can be a single value or an object.
+The validator can be a single zod schema or an object of zod schemas.
 
 ```ts
 procedure().input(z.string()) // single input
@@ -42,10 +42,10 @@ Guaranteed type safety at compile time and runtime.
 
 ```ts
 const hello = procedure()
-  .input({ name: z.string() })
-  .action(({ input }) => `Hello ${input.name}!`)
+  .input(z.string())
+  .action(() => {})
 
-hello({ name: 123 }) // error: expected string, got number
+hello(1) // error: expected string, got number
 ```
 
 - If the output is provided, the return value of the action will be inferred and validated accordingly.
@@ -84,7 +84,7 @@ const hello = authed.action(({ ctx }) => `Hello ${ctx.user}!`)
 const bye = authed.action(({ ctx }) => `Bye ${ctx.user}!`)
 ```
 
-## 2. Next.js
+## 3. Next.js
 
 Since server actions are just functions, you can use a procedure as a server action in Next.js.
 
@@ -96,7 +96,7 @@ import { procedure } from '@jcel/rpc'
 import { db, postSchema } from './db'
 
 export const getPost = procedure()
-  .input({ postId: z.coerce.number() }) // parse string to number
+  .input({ postId: z.coerce.number() })
   .output(postSchema)
   .action(async (c) => await db.posts.findById(c.input.postId))
 ```
@@ -107,13 +107,13 @@ Then just call it as a regular server action in the server or client to get the 
 // app/posts/[id]/page.tsx
 
 export default async function Page({ params }) {
-  const post = await getPost({ postId: params.id }) // id is a string from the URL
+  const post = await getPost({ postId: params.id })
 
   return <div>{post.title}</div>
 }
 ```
 
-## 3. Router
+## 4. Router
 
 Compose procedures using a router and handle HTTP requests.
 
@@ -130,12 +130,14 @@ const usersRouter = router({
 })
 
 export const app = router({
-  ping: procedure().action(async () => 'pong'),
+  ping: procedure().action(() => 'pong'),
   users: usersRouter,
 })
 
 export type AppRouter = typeof app // export the type for the client (if needed)
 ```
+
+## 5. Server
 
 Serve the router with the standalone server. It uses the Bun server under the hood.
 
@@ -157,7 +159,17 @@ const server = serve({
 console.log(`🔥 Listening at ${server.url.href}`)
 ```
 
-## 4. Client
+Then run the server and call the procedures over the network.
+
+```bash
+bun run server.ts
+
+curl -X POST 'localhost:8000?p=ping' # -> pong
+
+curl -X POST 'localhost:8000?p=users.list' # -> [...]
+```
+
+## 6. Client
 
 Create a HTTP client to call the procedures over the network. It uses a [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) and the standard fetch API.
 
