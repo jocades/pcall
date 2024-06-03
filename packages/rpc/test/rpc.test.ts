@@ -1,4 +1,4 @@
-import { RPC, initRPC } from '@/rpc'
+import { initRPC } from '@/rpc'
 import { app } from './router.test'
 import { serve } from '..'
 import type { Use } from '@/types'
@@ -20,8 +20,8 @@ async function context() {
 
 type Context = Use<typeof context>
 
-const r = initRPC().context<Context>().build()
+const { router, procedure } = initRPC<Context>()
 
-const root = r.router({
-  ping: r.procedure().action(() => 'pong'),
+const root = router({
+  ping: procedure().action(async () => 'pong'),
 })

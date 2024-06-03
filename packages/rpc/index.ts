@@ -1,11 +1,14 @@
 export {
   // RPC
-  RPC,
   initRPC,
+  type RPCRequest,
+  type RPCResponse,
 } from './src/rpc.ts'
 
 export {
   // Router,
+  router,
+  handle,
   type Router,
   type RouterDef,
   type FlatRouter,
@@ -13,16 +16,15 @@ export {
 
 export {
   // Procedure
+  procedure,
   type Procedure,
   type AnyProcedure,
-} from './src/procedure.bak.ts'
+} from './src/procedure.ts'
 
 export {
   // Server
   serve,
   type ServeConfig,
-  type RPCRequest,
-  type RPCResponse,
 } from './src/server.ts'
 
 // Caller

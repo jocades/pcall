@@ -1,29 +1,28 @@
 import { router } from '@/router'
 import { z } from 'zod'
-import { RPC } from '@/rpc'
 import { procedure } from '@/procedure'
 
 const users = router({
   list: procedure()
     .output(z.object({ msg: z.string() }))
-    .action(({ ctx }) => {
+    .action(async ({ ctx }) => {
       console.log('== middleware ==', { ctx })
       return { msg: 'list' }
     }),
   getById: procedure()
     .use(({ ctx }) => {
-      console.log('== middleware ==', { ctx })
+      console.log('== middleware 1 ==', { ctx })
       return { userId: 1 }
     })
     .use(({ ctx }) => {
-      console.log('middleware2', { ctx })
+      console.log('== middleware 2 ==', { ctx })
       ctx.userId = 2
       return ctx
     })
-    .meta({ description: 'Get user by ID' })
+    // .meta({ description: 'Get user by ID' })
     .input(z.object({ id: z.number() }))
     .output(z.object({ name: z.string() }))
-    .action(({ input, ctx }) => {
+    .action(async ({ input, ctx }) => {
       console.log('== action ==', { input, ctx })
       return { name: 'Jordi' }
     }),
@@ -34,7 +33,7 @@ const users = router({
 })
 
 export const app = router({
-  ping: procedure().action(() => 'Pong!'),
+  ping: procedure().action(async () => 'Pong!'),
   users: users,
 })
 
@@ -55,16 +54,16 @@ const suite = {
   },
 }
 
-function test() {
-  const routes = app.flat()
-  console.log({ routes })
+// function test() {
+//   const routes = app.flat()
+//   console.log({ routes })
 
-  console.log({ paths: routes.keys() })
+//   console.log({ paths: routes.keys() })
 
-  for (let [path, io] of Object.entries(suite)) {
-    const result = RPC.handle({ path, body: io.input }, routes)
-    console.log({ path, io, result })
-  }
-}
+//   for (let [path, io] of Object.entries(suite)) {
+//     const result = RPC.handle({ path, body: io.input }, routes)
+//     console.log({ path, io, result })
+//   }
+// }
 
 // test()

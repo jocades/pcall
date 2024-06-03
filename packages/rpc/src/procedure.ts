@@ -1,7 +1,7 @@
 import { isObj } from './util'
-import { isZodSchema, parseInput, parseOutput } from './server'
 import type { AnyFn, MaybePromise, ZodAny } from './types'
 import { z } from 'zod'
+import { error, type RPCErrorStatus } from './error'
 
 /**
  * @module Procedure
@@ -14,16 +14,13 @@ import { z } from 'zod'
  */
 
 export interface Procedure<I, O> {
-  $input: I
+  $input: Parse<I>
   $output: O
-  (input: Parse<I>): O
+  (input: Parse<I>, ctx?: unknown): O
 }
 
-/** @internal */
-interface Internals<I, O, C> {
-  input: I
-  output: O
-  context: C
+export function procedure<C>() {
+  return Builder.default<C>()
 }
 
 export type Middleware<I, O, C> = (c: Config<I, C>) => O
@@ -32,12 +29,17 @@ export type Config<I, C> = I extends undefined
   ? { ctx: C }
   : { ctx: C; input: Parse<I> }
 
+/** @internal */
+interface Internals<I, O, C> {
+  input: I
+  output: O
+  context: C
+}
+
 class Chain<T extends AnyFn> extends Array<T> {
   pipe(resolver: T) {
     return async (c: AnyConfig) => {
-      for (const mw of this) {
-        c.ctx = await mw(c)
-      }
+      for (const mw of this) c.ctx = await mw(c)
       return resolver(c)
     }
   }
@@ -51,11 +53,11 @@ class Builder<I, O, C> {
     this.internals = config
   }
 
-  static default<T>(ctx?: T) {
+  static default<T>() {
     return new Builder({
       input: undefined,
       output: undefined,
-      context: ctx as T, // remove the undefined
+      context: undefined as T,
     })
   }
 
@@ -80,9 +82,9 @@ class Builder<I, O, C> {
   action<R extends O extends undefined ? any : Parse<O>>(
     resolver: Middleware<I, Promise<R>, C>
   ): Procedure<I, Promise<R>> {
-    return Object.assign(async (input: Parse<I>) => {
+    return Object.assign(async (input: Parse<I>, ctx?: unknown) => {
       const config = {
-        ctx: this.internals.context,
+        ctx,
         input: parseInput(input, this.internals.input),
       }
 
@@ -99,8 +101,34 @@ class Builder<I, O, C> {
   }
 }
 
-export function procedure<C>(ctx?: C) {
-  return Builder.default<C>(ctx)
+export function parse<T>(
+  data: T,
+  schema: undefined | z.ZodTypeAny,
+  status: RPCErrorStatus
+) {
+  if (!schema) {
+    return data
+  }
+
+  const parsed = schema.safeParse(data)
+
+  if (!parsed.success) {
+    throw error(status, parsed.error.message)
+  }
+
+  return parsed.data
+}
+
+export function parseInput<I>(input: I, schema: undefined | z.ZodTypeAny) {
+  return parse(input, schema, 'BAD_REQUEST')
+}
+
+export function parseOutput<O>(output: O, schema: undefined | z.ZodTypeAny) {
+  return parse(output, schema, 'INTERNAL_SERVER_ERROR')
+}
+
+export function isZodSchema(value: unknown): value is z.ZodTypeAny {
+  return value instanceof z.ZodType
 }
 
 export type Schema = Record<string, ZodAny> | ZodAny

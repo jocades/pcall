@@ -1,5 +1,8 @@
-import { RPC, initRPC } from '@/rpc'
+// import { RPC, initRPC } from '@/rpc'
 // import { app } from './router.test'
+import { procedure } from '@/procedure'
+import { router } from '@/router'
+import { serve } from '@/server'
 import { z } from 'zod'
 
 interface User {
@@ -29,7 +32,7 @@ export const db = {
   },
 }
 
-const { router, procedure } = initRPC().build()
+// const { router, procedure } = initRPC().build()
 
 const app = router({
   ping: procedure().action(async () => 'pong'),
@@ -44,11 +47,13 @@ const app = router({
   }),
 })
 
-const server = RPC.serve({
+const server = serve({
   router: app,
-  context: {
-    // db,
-    user: { id: 1 },
+  context(req) {
+    return {
+      req,
+      user: { id: 1 },
+    }
   },
 })
 

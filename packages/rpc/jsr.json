@@ -1,0 +1,8 @@
+{
+  "name": "@cel/rpc",
+  "version": "0.0.1",
+  "exports": {
+    ".": "./index.ts",
+    "./bun": "./src/adapters/bun.ts"
+  }
+}

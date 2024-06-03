@@ -1,7 +1,6 @@
 import { createProxy } from './proxy'
 import { type Router } from './router'
-import { type RPCRequest } from './server'
-import { RPC } from './rpc'
+import type { RPCRequest } from './rpc'
 import type { DecorateCaller } from './types'
 
 /**
@@ -22,7 +21,7 @@ import type { DecorateCaller } from './types'
  * ```
  */
 export function factory<T extends Router>(router: T) {
-  const flatRouter = router.flat()
+  const handle = router.init()
 
   return function caller(ctx?: unknown) {
     return createProxy<DecorateCaller<T['$def']>>((path, args) => {
@@ -30,7 +29,7 @@ export function factory<T extends Router>(router: T) {
         path: path.join('.'),
         body: args[0],
       }
-      return RPC.handle(req, flatRouter, ctx)
+      return handle(req, ctx)
     })
   }
 }
