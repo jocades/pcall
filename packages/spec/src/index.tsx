@@ -1,5 +1,5 @@
 import ReactDOM from 'react-dom/client'
-import App from './app.tsx'
+import App from './app'
 import { type Router } from 'rpc'
 
 declare global {

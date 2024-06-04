@@ -1,36 +1,25 @@
 {
   "name": "@jcel/rpc",
-  "version": "0.0.9",
+  "version": "0.0.11",
   "author": "Jordi Calafat",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "dev": "bun run --watch ./test/server.test.ts",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json",
-    "lint": "tsc --noEmit --p tsconfig.build.json"
-  },
   "files": [
-    "src",
-    "dist",
-    "README.md"
+    "dist/src",
+    "dist/index.js",
+    "dist/index.js.map",
+    "dist/index.ts"
   ],
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.js"
+      "default": "./dist/index.js"
     },
     "./bun": {
-      "types": "./dist/src/adapters/bun.d.ts",
-      "import": "./dist/src/adapters/bun.js",
-      "require": "./dist/src/adapters/bun.js"
+      "default": "./dist/src/adapters/bun.js"
     },
     "./next": {
-      "types": "./dist/src/adapters/next.d.ts",
-      "import": "./dist/src/adapters/next.js",
-      "require": "./dist/src/adapters/next.js"
+      "default": "./dist/src/adapters/next.js"
     }
   },
   "devDependencies": {

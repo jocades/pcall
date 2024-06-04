@@ -2,6 +2,11 @@
   "name": "rpc",
   "module": "index.ts",
   "type": "module",
+  "scripts": {
+    "dev": "bun run --watch ./packages/rpc/test/server.test.ts",
+    "check": "tsc",
+    "build": "./build"
+  },
   "workspaces": [
     "packages/*"
   ],

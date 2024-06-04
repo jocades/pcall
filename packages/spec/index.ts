@@ -1,6 +1,5 @@
-import { procedure, router, type Router } from 'rpc'
-// import { handle } from 'rpc/bun'
-import { z } from 'zod'
+import { type Router } from 'rpc'
+import { app } from '@/../test/mock'
 
 function toB64(str: string) {
   return Buffer.from(str).toString('base64')
@@ -41,32 +40,6 @@ function renderRPCSpec(router: Router, opts: { url: string; title?: string }) {
     </html>
   `
 }
-
-interface User {
-  id: number
-  name: string
-  age: number
-}
-
-const db: { users: User[] } = {
-  users: [
-    { id: 1, name: 'Alice', age: 25 },
-    { id: 2, name: 'Bob', age: 30 },
-    { id: 3, name: 'Charlie', age: 35 },
-  ],
-}
-
-const app = router({
-  ping: procedure().action(() => 'pong'),
-  users: router({
-    list: procedure().action(() => db.users),
-    getById: procedure()
-      .input(z.number().describe('The ID of the user to fetch'))
-      .action(({ input }) => {
-        return db.users.find((user) => user.id === input)
-      }),
-  }),
-})
 
 Bun.serve({
   port: 8000,

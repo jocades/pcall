@@ -1,5 +1,5 @@
 import type { Serve } from 'bun'
-import type { Router } from '@/router'
+import type { Router } from '../router'
 import { fetchHandler, type ServeConfig } from '../server'
 
 export function handle(router: Router, config?: ServeConfig): Serve {

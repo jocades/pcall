@@ -6,8 +6,6 @@ const api = client<AppRouter>({ url: 'http://localhost:8000' })
 
 await api.users.getById({ userId: 2 })
 
-// run in promise.all
-
 const tests = [api.ping(), api.users.list(), api.users.getById({ userId: 2 })]
 
 const rounds = 50
@@ -21,7 +19,7 @@ async function test() {
   console.log(round)
 }
 
-// await bench(test)()
+await bench(test)()
 
 const results = await Promise.all(tests)
 for (const result of results) {

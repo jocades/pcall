@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+DIR="./packages/rpc"
+
+echo "Compiling $DIR..."
+
+rm -rf $DIR/dist && tsc -p $DIR/tsconfig.build.json
+
+if [ $? -ne 0 ]; then
+    echo "Build failed"
+    exit 1
+fi
+
+FILES="$DIR/index.ts $(find $DIR/src/** -type f -name "*.ts")"
+
+echo "Copying source files..."
+
+for file in $FILES; do
+    echo $file
+    cp $file "./packages/rpc/dist/${file#./packages/rpc/}"
+done
+
+echo "Done"

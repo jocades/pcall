@@ -1,5 +1,5 @@
-import type { Router } from '@/router'
-import { fetchHandler, type ServeConfig } from '@/server'
+import type { Router } from '../router'
+import { fetchHandler, type ServeConfig } from '../server'
 
 /**
  * ```ts
