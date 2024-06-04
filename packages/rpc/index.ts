@@ -8,7 +8,6 @@ export {
 export {
   // Router,
   router,
-  handle,
   type Router,
   type RouterDef,
   type FlatRouter,

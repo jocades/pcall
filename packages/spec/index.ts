@@ -1,5 +1,5 @@
 import { procedure, router, type Router } from 'rpc'
-import { handle } from 'rpc/bun'
+// import { handle } from 'rpc/bun'
 import { z } from 'zod'
 
 function toB64(str: string) {

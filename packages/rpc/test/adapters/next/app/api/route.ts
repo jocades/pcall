@@ -1,5 +1,5 @@
 import { router, procedure } from 'rpc'
-import { handle } from '../../../../../../dist/src/adapters/next'
+import { handle } from '@/adapters/next'
 
 const app = router({
   ping: procedure().action(() => 'pong'),

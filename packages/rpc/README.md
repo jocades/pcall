@@ -317,7 +317,7 @@ export default handle(app)
 
 </details>
 
-### 4.2 Options
+### 4.2 Configuration
 
 Customize the server. The context function will be called on every request and pass the return value to the router so it can be accessed in the procedures.
 

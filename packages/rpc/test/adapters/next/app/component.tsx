@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { getPost } from './actions'
-import { Use } from '../../../../../dist/src/types'
+import type { Use } from '@/types'
 
 interface ComponentProps {}
 

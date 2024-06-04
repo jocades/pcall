@@ -82,7 +82,7 @@ export class Builder<I, O, C> {
   }
 
   action<R extends O extends undefined ? any : Parse<O>>(
-    resolver: Middleware<I, MaybePromise<R>, C>
+    resolver: Middleware<I, MaybePromise<R>, C>,
   ): Procedure<I, R> {
     return Object.assign(async (input: Parse<I>, ctx?: unknown) => {
       const config = {
@@ -106,7 +106,7 @@ export class Builder<I, O, C> {
 export function parse<T>(
   data: T,
   schema: undefined | z.ZodType,
-  status: RPCErrorStatus
+  status: RPCErrorStatus,
 ) {
   if (!schema) {
     return data
@@ -136,14 +136,14 @@ export function isZodSchema(value: unknown): value is z.ZodTypeAny {
 export type Parse<T> = T extends z.ZodType
   ? T['_output']
   : T extends Record<string, z.ZodType>
-  ? z.ZodObject<T>['_output']
-  : Expected<z.ZodType, T>
+    ? z.ZodObject<T>['_output']
+    : Expected<z.ZodType, T>
 
 export type ParseInput<T> = T extends z.ZodType
   ? T['_input']
   : T extends Record<string, z.ZodType>
-  ? z.ZodObject<T>['_input']
-  : Expected<z.ZodType, T>
+    ? z.ZodObject<T>['_input']
+    : Expected<z.ZodType, T>
 
 export type AnyConfig = Config<any, any>
 export type AnyInternals = Internals<any, any, any>

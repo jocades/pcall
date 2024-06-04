@@ -28,30 +28,32 @@ export async function json<T>(req: Request) {
 }
 
 interface CorsOptions {
-  origins: string[]
-  methods: string[]
-  headers: string[]
+  origins?: string[]
+  methods?: string[]
+  headers?: string[]
 }
 
-export function cors(opts?: Partial<CorsOptions>) {
+export function cors(opts: CorsOptions = {}): HeadersInit {
   return {
-    'Access-Control-Allow-Origin': opts?.origins?.join(', ') ?? '*',
+    'Access-Control-Allow-Origin': opts.origins?.join(', ') ?? '*',
     'Access-Control-Allow-Methods':
-      opts?.methods?.join(', ') ?? 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': opts?.headers?.join(', ') ?? 'Content-Type',
+      opts.methods?.join(', ') ?? 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': opts.headers?.join(', ') ?? 'Content-Type',
   }
 }
+
+export const OPEN_CORS = cors()
 
 export const res = {
   json(data: unknown, status = 200) {
     return new Response(JSON.stringify(data), {
-      headers: { 'Content-Type': 'application/json', ...cors() },
+      headers: { 'Content-Type': 'application/json', ...OPEN_CORS },
       status,
     })
   },
   text(data: string, status = 200) {
     return new Response(data, {
-      headers: { 'Content-Type': 'text/plain', ...cors() },
+      headers: OPEN_CORS,
       status,
     })
   },
@@ -59,7 +61,7 @@ export const res = {
 
 export function fetchHandler(
   router: Router,
-  config: Omit<ServeConfig, 'port'>,
+  config: Omit<ServeConfig, 'port'> = {},
 ) {
   const handle = router.init()
   const { headers, context } = config
