@@ -67,19 +67,19 @@ Add middlewares to the procedure to create a chain of actions.<br>
 The **return value** of the middleware will be **assigned** to the procedures `context`.
 
 ```ts
-const getUser = procedure()
-  .use(async () => {
-    const session = await getSession()
-    return { user: session.user }
+procedure()
+  .use(() => {
+    return { user: 'foo' }
   })
-  .action(({ ctx }) => `Hello ${ctx.user.name}!`)
+  .action(({ ctx }) => `Hello ${ctx.user}!`)
 ```
 
 <details>
 <summary>
   <b>2.1.1. Chaining middlewares.</b>
 </summary></br>
-Think of it as a pipeline where the context is passed from one middleware to another.
+
+- Think of it as a pipeline where the context is passed from one middleware to another.
 
 ```ts
 async function auth() {
@@ -109,7 +109,8 @@ procedure()
 <summary>
   <b>2.1.2. Reusing middlewares.</b>
 </summary></br>
-Define a middleware once and reuse it across multiple procedures.
+
+- Define a middleware once and reuse it across multiple procedures.
 
 ```ts
 const authed = procedure().use(auth)
@@ -120,7 +121,7 @@ const bye = authed.action(({ ctx }) => `Bye ${ctx.user}!`)
 
 </details>
 
-## 3. Next.js
+### 2.2. Next.js Server Actions
 
 Since server actions are just functions, you can use a procedure as a server action in Next.js.
 
@@ -148,8 +149,8 @@ Call it from a server or client component.
 
 <details>
 <summary>
-  Server component.
-</summary></br>
+  <b>2.2.1. Server component.</b>
+</summary>
 
 ```tsx
 // app/posts/[id]/page.tsx
@@ -167,8 +168,8 @@ export default async function Page({ params }) {
 
 <details>
 <summary>
-  Client component with React Query.
-</summary></br>
+  <b>2.2.2. Client component with React Query.</b>
+</summary>
 
 ```tsx
 // components/post-form.tsx
@@ -205,7 +206,7 @@ export function PostForm() {
 
 </details>
 
-## 4. Router
+## 3. Router
 
 Compose procedures using a router.
 
@@ -247,9 +248,9 @@ const req = {
 const result = handle(req)
 ``` -->
 
-## 5. Server
+## 4. Server
 
-Serve the router with a standalone server. Powered by the blazing fast [Bun HTTP server](https://bun.sh/docs/api/http).
+Serve the app with the standalone server. Powered by the blazing fast [Bun HTTP server](https://bun.sh/docs/api/http).
 
 ```ts
 import { serve } from '@jcel/rpc'
@@ -260,7 +261,10 @@ const server = serve(app)
 console.log(`🔥 Listening at ${server.url.href}`)
 ```
 
-Run the server and call the procedures over the network.
+<details>
+<summary>
+  Run the server and call the procedures over the network.
+</summary>
 
 ```bash
 bun run server.ts
@@ -270,18 +274,50 @@ curl -X POST 'localhost:8000?p=ping' # -> pong
 curl -X POST 'localhost:8000?p=users.list' # -> [...]
 ```
 
-### 5.1. Next.js Adapter
+</details>
 
-Use the router in a Next.js API route.
+### 4.1. Adapters
+
+The router can be adapted to any library, framework or service which follows the web standard HTTP request and response format.
+
+<details open>
+<summary>
+  <b>4.1.1. Next.js.</b>
+</summary></br>
+
+- Use the router in a Next.js API route.
 
 ```ts
-import { app } from './app'
+// app/api/route.ts
+
 import { handle } from '@jcel/rpc/next'
+
+const app = router({
+  ping: procedure().action(() => 'pong'),
+})
 
 export const POST = handle(app)
 ```
 
-### 5.2 Options
+</details>
+
+<details>
+<summary>
+  <b>4.1.2. Bun.</b>
+</summary></br>
+
+- This is what the standalone server uses under the hood.
+
+```ts
+import { handle } from '@jcel/rpc/bun'
+import { app } from './app'
+
+export default handle(app)
+```
+
+</details>
+
+### 4.2 Options
 
 Customize the server. The context function will be called on every request and pass the return value to the router so it can be accessed in the procedures.
 
@@ -296,9 +332,7 @@ serve(app, {
 })
 ```
 
-The router can be adapted to any library, framework or service which follows the standard HTTP request and response format.
-
-## 6. Client
+## 5. Client
 
 Create a client to call the procedures over the network with end to end type safety. It uses a [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) and the web standard fetch API under the hood.
 
@@ -311,7 +345,8 @@ const api = client<AppRouter>({ url: 'http://localhost:8000' })
 const data = await api.posts.getById({ postId: 1 })
 ```
 
-The **parameters** and **return type** will be **inferred** from the router type and some TypeScript magic so there is no need to import the router itself in the client side, just the type.
+The **parameters** and **return type** will be **inferred** from the router type.</br>
+There is no need to **import** the router itself in the client side, **just the type**.
 
 ## X. Examples
 
