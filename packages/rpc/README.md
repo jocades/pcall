@@ -31,12 +31,15 @@ const result = await hello({ name: 'World' })
 The validator can be a single zod schema or an object of zod schemas.
 
 ```ts
-procedure().input(z.string()) // single input
-procedure().input({ name: z.string() }) // will be wrapped with z.object
+procedure().input(z.string()) // single schema
+procedure().input({ name: z.string() }) // will be wrapped in z.object
 procedure().input(z.object({ name: z.string() })) // same as above
 ```
 
-Guaranteed type safety at compile time and runtime.
+<details>
+<summary>
+  <b>Guaranteed type safety at compile and runtime.</b>
+</summary></br>
 
 - If the input is provided, the input value will be inferred and validated accordingly.
 
@@ -56,6 +59,8 @@ procedure()
   .action(() => 1) // error: expected string, got number
 ```
 
+</details>
+
 ### 2.1. Middleware
 
 Add middlewares to the procedure to create a chain of actions.<br>
@@ -67,15 +72,17 @@ const getUser = procedure()
     const session = await getSession()
     return { user: session.user }
   })
-  .action(async ({ ctx }) => {
-    return await db.users.findById(ctx.user.id)
-  })
+  .action(({ ctx }) => `Hello ${ctx.user.name}!`)
 ```
 
-Chain middlewares.
+<details>
+<summary>
+  <b>2.1.1. Chaining middlewares.</b>
+</summary></br>
+Think of it as a pipeline where the context is passed from one middleware to another.
 
 ```ts
-async function auth({ ctx }) {
+async function auth() {
   const session = await getSession() // -> { user } | null
   if (!session) throw new Error('Unauthorized')
   return { user: session.user } // infer non-null user
@@ -96,6 +103,12 @@ procedure()
   })
 ```
 
+</details>
+
+<details>
+<summary>
+  <b>2.1.2. Reusing middlewares.</b>
+</summary></br>
 Define a middleware once and reuse it across multiple procedures.
 
 ```ts
@@ -104,6 +117,8 @@ const authed = procedure().use(auth)
 const hello = authed.action(({ ctx }) => `Hello ${ctx.user}!`)
 const bye = authed.action(({ ctx }) => `Bye ${ctx.user}!`)
 ```
+
+</details>
 
 ## 3. Next.js
 
@@ -131,7 +146,10 @@ export const createPost = procedure()
 
 Call it from a server or client component.
 
-- Server component.
+<details>
+<summary>
+  Server component.
+</summary></br>
 
 ```tsx
 // app/posts/[id]/page.tsx
@@ -145,7 +163,12 @@ export default async function Page({ params }) {
 }
 ```
 
-- Client component with React Query.
+</details>
+
+<details>
+<summary>
+  Client component with React Query.
+</summary></br>
 
 ```tsx
 // components/post-form.tsx
@@ -179,6 +202,8 @@ export function PostForm() {
   )
 }
 ```
+
+</details>
 
 ## 4. Router
 
