@@ -21,11 +21,13 @@ import type { DecorateCaller } from './types'
  * @param router - The router to create the caller for.
  * @returns A caller function.
  */
-export function factory<T extends Router>(
-  router: T
-): (ctx?: unknown) => DecorateCaller<T['$def']> {
+export function factory<T extends Router>(router: T) {
   const handle = router.init()
 
+  /**
+   * Create a proxy object to call the procedures.
+   * @param ctx - The context object to pass to the procedures.
+   */
   return function caller(ctx?: unknown) {
     return createProxy<DecorateCaller<T['$def']>>((path, args) => {
       const req: RPCRequest = {

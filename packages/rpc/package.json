@@ -7,7 +7,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "dev": "bun run ./test/server.test.ts",
+    "dev": "bun run --watch ./test/server.test.ts",
     "build": "rm -rf dist && tsc -p tsconfig.build.json",
     "lint": "tsc --noEmit --p tsconfig.build.json"
   },
@@ -26,6 +26,11 @@
       "types": "./dist/src/adapters/bun.d.ts",
       "import": "./dist/src/adapters/bun.js",
       "require": "./dist/src/adapters/bun.js"
+    },
+    "./next": {
+      "types": "./dist/src/adapters/next.d.ts",
+      "import": "./dist/src/adapters/next.js",
+      "require": "./dist/src/adapters/next.js"
     }
   },
   "devDependencies": {

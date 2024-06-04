@@ -1,10 +1,7 @@
 {
   "compilerOptions": {
     // Enable latest features
-    "lib": [
-      "ESNext",
-      "DOM"
-    ],
+    "lib": ["ESNext", "DOM"],
     "target": "ESNext",
     "module": "ESNext",
     "moduleDetection": "force",
@@ -14,7 +11,6 @@
     "moduleResolution": "bundler",
     // "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
-    // "noEmit": true,
     "baseUrl": ".",
     "outDir": "./dist",
     "sourceMap": true,
@@ -29,12 +25,8 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     }
   },
-  "exclude": [
-    "**/*.test.ts",
-  ]
+  "exclude": ["**/*.test.ts"]
 }

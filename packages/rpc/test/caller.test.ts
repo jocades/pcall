@@ -1,5 +1,5 @@
 import { factory } from '@/caller'
-import { RPC, initRPC } from '@/rpc'
+import { initRPC } from '@/rpc'
 import type { Use } from '@/types'
 import { z } from 'zod'
 
@@ -14,7 +14,7 @@ async function context() {
 
 type Context = Use<typeof context>
 
-const { router, procedure } = initRPC().context<Context>().build()
+const { router, procedure } = initRPC<Context>()
 
 const root = router({
   users: router({

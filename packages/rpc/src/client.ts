@@ -16,9 +16,7 @@ export interface ClientConfig {
   url: string
 }
 
-export function client<T extends Router>(
-  config: ClientConfig,
-): DecorateCaller<T['$def']> {
+export function client<T extends Router>(config: ClientConfig) {
   // const url = new URL(config.url)
 
   return createProxy<DecorateCaller<T['$def']>>((path, args) => {

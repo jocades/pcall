@@ -19,5 +19,3 @@ export const getPost = procedure()
     console.log(c.input, c.ctx)
     return 'Hello World!'
   })
-
-// export const action = builder()

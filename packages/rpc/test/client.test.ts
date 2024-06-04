@@ -1,14 +1,14 @@
 import { client } from '@/client'
-import { type AppRouter } from './router.test'
 import { bench } from '@/util'
+import type { AppRouter } from './mock'
 
 const api = client<AppRouter>({ url: 'http://localhost:8000' })
 
-await api.users.getById({ id: 2 })
+await api.users.getById({ userId: 2 })
 
 // run in promise.all
 
-const tests = [api.ping(), api.users.list(), api.users.getById({ id: 2 })]
+const tests = [api.ping(), api.users.list(), api.users.getById({ userId: 2 })]
 
 const rounds = 50
 

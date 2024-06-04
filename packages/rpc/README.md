@@ -58,29 +58,48 @@ procedure()
 
 ### 2.1. Middleware
 
-Add middlewares to the procedure to create a chain of actions. The return value of the middleware will be assigned to the procedures `context`.
+Add middlewares to the procedure to create a chain of actions.<br>
+The **return value** of the middleware will be **assigned** to the procedures `context`.
 
 ```ts
 const getUser = procedure()
   .use(async () => {
     const session = await getSession()
-    if (!session) throw new Error('Unauthorized')
     return { user: session.user }
   })
   .action(async ({ ctx }) => {
-    // inferred non-null user type
     return await db.users.findById(ctx.user.id)
+  })
+```
+
+Chain middlewares.
+
+```ts
+async function auth({ ctx }) {
+  const session = await getSession() // -> { user } | null
+  if (!session) throw new Error('Unauthorized')
+  return { user: session.user } // infer non-null user
+}
+
+function admin({ ctx }) {
+  if (ctx.user.role !== 'admin') {
+    throw new Error('Forbidden')
+  }
+  return ctx
+}
+
+procedure()
+  .use(auth)
+  .use(admin)
+  .action(({ ctx }) => {
+    console.log('Admin:', ctx.user.name)
   })
 ```
 
 Define a middleware once and reuse it across multiple procedures.
 
 ```ts
-const authed = procedure().use(async () => {
-  const session = await getSession()
-  if (!session) throw new Error('Unauthorized')
-  return { user: session.user.name }
-})
+const authed = procedure().use(auth)
 
 const hello = authed.action(({ ctx }) => `Hello ${ctx.user}!`)
 const bye = authed.action(({ ctx }) => `Bye ${ctx.user}!`)
@@ -110,7 +129,7 @@ export const createPost = procedure()
   .action(async (c) => await db.posts.create(c.input))
 ```
 
-Then just call it like a regular server action from a server or client component.
+Call it from a server or client component.
 
 - Server component.
 
@@ -182,10 +201,11 @@ export const app = router({
   users: usersRouter,
 })
 
-export type AppRouter = typeof app // export the type for the client (if needed)
+// export the type for the client if needed
+export type AppRouter = typeof app
 ```
 
-### 4.1. Initialize the router and handle requests.
+<!-- ### 4.1. Initialize the router and handle requests.
 
 ```ts
 import { app } from './app'
@@ -200,7 +220,7 @@ const req = {
 
 // Handle the request.
 const result = handle(req)
-```
+``` -->
 
 ## 5. Server
 
@@ -236,7 +256,7 @@ curl -X POST 'localhost:8000?p=users.list' # -> [...]
 
 ## 6. Client
 
-Create a client to call the procedures over the network with end to end type safety. It uses a [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) and the web standard fetch API.
+Create a client to call the procedures over the network with end to end type safety. It uses a [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) and the web standard fetch API under the hood.
 
 ```ts
 import { client } from '@jcel/rpc'

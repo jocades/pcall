@@ -15,8 +15,8 @@ export type DecorateCaller<T extends RouterDef> = {
   [K in keyof T]: T[K] extends Router
     ? DecorateCaller<T[K]['$def']>
     : T[K] extends Procedure<infer I, infer O>
-      ? (input: I extends undefined ? void : Parse<I>) => O
-      : ErrorMessage<'Invalid route definition', T[K]>
+    ? (input: I extends undefined ? void : Parse<I>) => Promise<O>
+    : ErrorMessage<'Invalid route definition', T[K]>
 }
 
 /** @internal */
