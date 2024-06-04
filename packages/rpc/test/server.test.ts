@@ -1,8 +1,7 @@
 import { serve } from '@/server'
 import { app } from './mock'
 
-const server = serve({
-  router: app,
+const server = serve(app, {
   context(req) {
     return {
       req,

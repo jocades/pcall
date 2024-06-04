@@ -230,16 +230,7 @@ Serve the router with a standalone server. Powered by the blazing fast [Bun HTTP
 import { serve } from '@jcel/rpc'
 import { app } from './app'
 
-const server = serve({
-  port: 8000,
-  router: app,
-  context(req) {
-    return {
-      req,
-      user: { id: 1 },
-    }
-  },
-})
+const server = serve(app)
 
 console.log(`🔥 Listening at ${server.url.href}`)
 ```
@@ -253,6 +244,34 @@ curl -X POST 'localhost:8000?p=ping' # -> pong
 
 curl -X POST 'localhost:8000?p=users.list' # -> [...]
 ```
+
+### 5.1. Next.js Adapter
+
+Use the router in a Next.js API route.
+
+```ts
+import { app } from './app'
+import { handle } from '@jcel/rpc/next'
+
+export const POST = handle(app)
+```
+
+### 5.2 Options
+
+Customize the server. The context function will be called on every request and pass the return value to the router so it can be accessed in the procedures.
+
+```ts
+serve(app, {
+  port: 8000,
+  context(req) {
+    return {
+      token: req.headers.get('x'),
+    }
+  },
+})
+```
+
+The router can be adapted to any library, framework or service which follows the standard HTTP request and response format.
 
 ## 6. Client
 
