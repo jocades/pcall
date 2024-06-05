@@ -1,4 +1,4 @@
-import { type Router } from 'rpc'
+import { type Router } from '@/router'
 import { app } from '@/../test/mock'
 
 function toB64(str: string) {

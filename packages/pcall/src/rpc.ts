@@ -2,6 +2,13 @@ import { router } from './router'
 import { Builder } from './procedure'
 import type { RPCError } from './error'
 
+/**
+ * @module RPC
+ *
+ * JSON-RPC 2.0 protocol.
+ * @see https://www.jsonrpc.org/specification
+ */
+
 export interface RPCRequest {
   path: string
   body: unknown

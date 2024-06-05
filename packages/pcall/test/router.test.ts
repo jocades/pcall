@@ -1,3 +1,6 @@
+import { procedure as pc } from '..'
+import { procedure as proc } from '..'
+import { procedure } from '..'
 const suite = {
   ['users.getById']: {
     input: { id: 1 },
@@ -12,6 +15,27 @@ const suite = {
     output: 'Pong!',
   },
 }
+
+const a = procedure()
+  .input({})
+  .action(() => {})
+
+const b = proc()
+  .input({})
+  .action(() => {})
+
+const c = pc()
+  .input({})
+  .action(() => {})
+
+// pc.input().action(() => {})
+// pc().input().action(() => {})
+
+// proc.input().action(() => {})
+// proc().input().action(() => {})
+
+// procedure.input().action(() => {})
+// procedure().input().action(() => {})
 
 // function test() {
 //   const routes = app.flat()

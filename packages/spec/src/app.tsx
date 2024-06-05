@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { type Router } from 'rpc'
+import { type Router } from '@/router'
 
 interface Props {
   url: string

@@ -6,8 +6,8 @@
     "dev": "bun --watch packages/rpc/test/server.test.ts",
     "dev:next": "bun --cwd packages/rpc/test/adapters/next dev",
     "check": "tsc",
-    "build": "scripts/build rpc",
-    "publish": "bun scripts/publish.ts rpc"
+    "build": "scripts/build pcall",
+    "publish": "bun scripts/publish.ts pcall"
   },
   "workspaces": [
     "packages/*"

@@ -16,6 +16,7 @@ export {
 export {
   // Procedure
   procedure,
+  procedure as pc,
   type Procedure,
   type AnyProcedure,
 } from './src/procedure'

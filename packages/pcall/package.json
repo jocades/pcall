@@ -26,12 +26,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jocades/rpc.git"
+    "url": "git+https://github.com/jocades/pcall.git"
   },
   "keywords": [
     "bun",
     "rpc",
     "next",
-    "procedure"
+    "procedure",
+    "router",
+    "call",
+    "server",
+    "actions"
   ]
 }

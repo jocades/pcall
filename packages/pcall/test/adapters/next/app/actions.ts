@@ -1,7 +1,7 @@
 'use server'
 
 import { z } from 'zod'
-import { procedure } from '@/procedure'
+import { procedure as pc } from '@/procedure'
 import { postSchema, db, strInt } from '@/../test/mock'
 
 function sleep(sec: number) {
@@ -14,7 +14,7 @@ async function getSession(dont = false) {
     : {
         user: {
           id: 1,
-          name: 'John Doe',
+          name: 'John',
           role: 'admin',
         },
       }
@@ -34,7 +34,11 @@ function admin({ ctx }) {
   return ctx
 }
 
-export const getPost = procedure()
+export const getPosts = pc()
+  .use(auth)
+  .action(() => db.posts.find())
+
+export const getPost = pc()
   .input({ postId: strInt })
   .output(postSchema)
   .action((c) => {
@@ -43,7 +47,7 @@ export const getPost = procedure()
     return post
   })
 
-export const createPost = procedure()
+export const createPost = pc()
   .use(auth)
   .input({ title: z.string() })
   .output(postSchema)
@@ -51,7 +55,3 @@ export const createPost = procedure()
     await sleep(2)
     return db.posts.create(c.input)
   })
-
-export const getPosts = procedure()
-  .use(auth)
-  .action(() => db.posts.find())

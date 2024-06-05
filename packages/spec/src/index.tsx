@@ -1,6 +1,6 @@
 import ReactDOM from 'react-dom/client'
 import App from './app'
-import { type Router } from 'rpc'
+import { type Router } from '@/router'
 
 declare global {
   interface Window {

@@ -25,7 +25,7 @@
     "noPropertyAccessFromIndexSignature": false,
     "paths": {
       "@/*": [
-        "./packages/rpc/src/*"
+        "./packages/pcall/src/*"
       ],
     }
   }
