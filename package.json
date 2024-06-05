@@ -3,9 +3,11 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "dev": "bun run --watch ./packages/rpc/test/server.test.ts",
+    "dev": "bun --watch packages/rpc/test/server.test.ts",
+    "dev:next": "bun --cwd packages/rpc/test/adapters/next dev",
     "check": "tsc",
-    "build": "./build"
+    "build": "scripts/build rpc",
+    "publish": "bun scripts/publish.ts rpc"
   },
   "workspaces": [
     "packages/*"

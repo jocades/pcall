@@ -2,6 +2,7 @@ import type { Router } from '../router'
 import { fetchHandler, type ServeConfig } from '../server'
 
 /**
+ * @example
  * ```ts
  * const app = router({
  *   ping: procedure().action(() => 'pong'),

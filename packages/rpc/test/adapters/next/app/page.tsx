@@ -6,7 +6,7 @@ export default async function Home() {
   console.log({ data })
 
   return (
-    <main className="flex flex-col min-h-screen items-center justify-center">
+    <main className="flex flex-col min-h-screen bg-red-200 items-center justify-center">
       Server: {data}
       <Component />
     </main>

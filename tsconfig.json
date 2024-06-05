@@ -27,9 +27,6 @@
       "@/*": [
         "./packages/rpc/src/*"
       ],
-      "rpc": [
-        "./packages/rpc/index.ts"
-      ],
     }
   }
 }

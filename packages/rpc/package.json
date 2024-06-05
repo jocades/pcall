@@ -1,25 +1,19 @@
 {
   "name": "@jcel/rpc",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "author": "Jordi Calafat",
   "license": "MIT",
   "type": "module",
-  "main": "dist/index.js",
-  "files": [
-    "dist/src",
-    "dist/index.js",
-    "dist/index.js.map",
-    "dist/index.ts"
-  ],
+  "main": "index.js",
   "exports": {
     ".": {
-      "default": "./dist/index.js"
+      "default": "./index.js"
     },
     "./bun": {
-      "default": "./dist/src/adapters/bun.js"
+      "default": "./src/adapters/bun.js"
     },
     "./next": {
-      "default": "./dist/src/adapters/next.js"
+      "default": "./src/adapters/next.js"
     }
   },
   "devDependencies": {

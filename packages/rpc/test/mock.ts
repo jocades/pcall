@@ -8,7 +8,7 @@ export interface User {
 }
 
 const users: Map<number, User> = new Map(
-  Array.from({ length: 50 }, (_, i) => {
+  Array.from({ length: 20 }, (_, i) => {
     return [
       i + 1,
       {
@@ -16,7 +16,7 @@ const users: Map<number, User> = new Map(
         name: `User ${i + 1}`,
       },
     ]
-  })
+  }),
 )
 
 export const db = {

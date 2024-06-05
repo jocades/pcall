@@ -1,4 +1,4 @@
-import { router, procedure } from 'rpc'
+import { router, procedure } from '@/..'
 import { handle } from '@/adapters/next'
 
 const app = router({

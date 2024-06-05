@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+if [ -z "$1" ]; then
+    echo "Usage: build <package>"
+    exit 1
+fi
+
+SRC="packages/$1"
+
+cd $SRC
+
+echo "Compiling $SRC..."
+
+rm -rf dist && tsc -p tsconfig.build.json
+
+if [ $? -ne 0 ]; then
+    echo "Build failed"
+    exit 1
+fi
+
+echo "Preparing $SRC/dist..."
+
+cp package.json dist
+cp README.md dist
+
+FILES="index.ts $(find src/** -type f -name "*.ts")"
+
+echo "Copying source files..."
+
+for file in $FILES; do
+    cp $file "dist/$file"
+done
+
+cd - >/dev/null
+
+bun scripts/publish.ts $1

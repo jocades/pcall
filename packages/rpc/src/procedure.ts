@@ -5,6 +5,7 @@ import { error, type RPCErrorStatus } from './error'
 
 /**
  * @module Procedure
+ *
  * Type Map:
  * I -> Input
  * O -> Output
