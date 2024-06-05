@@ -9,7 +9,7 @@ Remote Procedure Call (RPC) over HTTP with end to end validation and type safety
 ## 1. Installation
 
 ```bash
-bun add @jcel/rpc zod
+bun add @calap/pcall zod
 ```
 
 ## 2. Procedure
@@ -18,7 +18,7 @@ A procedure is a way to define a function which validates its input and output.
 
 ```ts
 import { z } from 'zod'
-import { procedure } from '@jcel/rpc'
+import { procedure } from '@calap/pcall'
 
 const hello = procedure()
   .input({ name: z.string() })
@@ -129,7 +129,7 @@ Since server actions are just functions, you can use a procedure as a server act
 'use server'
 
 import { z } from 'zod'
-import { procedure } from '@jcel/rpc'
+import { procedure } from '@calap/pcall'
 import { db, postSchema } from './db'
 import { auth } from './auth'
 
@@ -211,7 +211,7 @@ export function PostForm() {
 Compose procedures using a router.
 
 ```ts
-import { router, procedure } from '@jcel/rpc'
+import { router, procedure } from '@calap/pcall'
 
 const usersRouter = router({
   list: procedure().action(async () => await db.users.find()),
@@ -253,7 +253,7 @@ const result = handle(req)
 Serve the app with the standalone server. Powered by the blazing fast [Bun HTTP server](https://bun.sh/docs/api/http).
 
 ```ts
-import { serve } from '@jcel/rpc'
+import { serve } from '@calap/pcall'
 import { app } from './app'
 
 const server = serve(app)
@@ -290,7 +290,7 @@ The router can be adapted to any library, framework or service which follows the
 ```ts
 // app/api/route.ts
 
-import { handle } from '@jcel/rpc/next'
+import { handle } from '@calap/pcall/next'
 
 const app = router({
   ping: procedure().action(() => 'pong'),
@@ -309,7 +309,7 @@ export const POST = handle(app)
 - This is what the standalone server uses under the hood.
 
 ```ts
-import { handle } from '@jcel/rpc/bun'
+import { handle } from '@calap/pcall/bun'
 import { app } from './app'
 
 export default handle(app)
@@ -337,7 +337,7 @@ serve(app, {
 Create a client to call the procedures over the network with end to end type safety. It uses a [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) and the web standard fetch API under the hood.
 
 ```ts
-import { client } from '@jcel/rpc'
+import { client } from '@calap/pcall'
 import type { AppRouter } from './server'
 
 const api = client<AppRouter>({ url: 'http://localhost:8000' })
@@ -354,7 +354,7 @@ There is no need to **import** the router itself in the client side, **just the 
 
 ```tsx
 import { useQuery } from 'react-query'
-import { client } from '@jcel/rpc'
+import { client } from '@calap/pcall'
 import type { AppRouter } from './server'
 
 const api = client<AppRouter>({ url: 'http://localhost:8000' })

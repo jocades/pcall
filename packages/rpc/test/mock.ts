@@ -2,10 +2,18 @@ import { procedure } from '@/procedure'
 import { router } from '@/router'
 import { z } from 'zod'
 
-export interface User {
-  id: number
-  name: string
-}
+export const userSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+})
+
+export const postSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+})
+
+export type User = z.infer<typeof userSchema>
+export type Post = z.infer<typeof postSchema>
 
 const users: Map<number, User> = new Map(
   Array.from({ length: 20 }, (_, i) => {
@@ -19,47 +27,85 @@ const users: Map<number, User> = new Map(
   }),
 )
 
+const posts: Map<number, Post> = new Map(
+  Array.from({ length: 20 }, (_, i) => {
+    return [
+      i + 1,
+      {
+        id: i + 1,
+        title: `Post ${i + 1}`,
+      },
+    ]
+  }),
+)
+
 export const db = {
   users: {
     find: () => Array.from(users.values()),
-    findById: (id: number) => users.get(id),
     create: (data: Omit<User, 'id'>) => {
       const user = { ...data, id: users.size + 1 }
       users.set(user.id, user)
       return user
     },
+    findById: (id: number) => users.get(id),
     deleteById: (id: number) => {
       const user = users.get(id)
       users.delete(id)
       return user
     },
   },
+  posts: {
+    find: () => Array.from(posts.values()),
+    create: (data: Omit<Post, 'id'>) => {
+      const post = { ...data, id: posts.size + 1 }
+      posts.set(post.id, post)
+      return post
+    },
+    findById: (id: number) => posts.get(id),
+    deleteById: (id: number) => {
+      const post = posts.get(id)
+      posts.delete(id)
+      return post
+    },
+  },
 }
+
+export const usersRouter = router({
+  list: procedure().action(() => db.users.find()),
+  create: procedure()
+    .input({ name: z.string() })
+    .action(({ input }) => db.users.create({ name: input.name })),
+  getById: procedure()
+    .input({ userId: z.number() })
+    .action(({ input }) => db.users.findById(input.userId)),
+  deleteById: procedure()
+    .input({ userId: z.number() })
+    .action(({ input }) => db.users.deleteById(input.userId)),
+})
+
+export const postsRouter = router({
+  list: procedure().action(() => db.posts.find()),
+  create: procedure()
+    .input({ title: z.string() })
+    .action(({ input }) => db.posts.create({ title: input.title })),
+  getById: procedure()
+    .input({ postId: z.number() })
+    .action(({ input }) => db.posts.findById(input.postId)),
+  deleteById: procedure()
+    .input({ postId: z.number() })
+    .action(({ input }) => db.posts.deleteById(input.postId)),
+})
 
 export const app = router({
   ping: procedure().action(() => 'pong'),
-  users: router({
-    list: procedure().action(() => db.users.find()),
-    getById: procedure()
-      .input({ userId: z.number() })
-      .action(({ input }) => {
-        console.log({ input })
-        return db.users.findById(input.userId)
-      }),
-  }),
+  users: usersRouter,
+  posts: postsRouter,
 })
 
 export type AppRouter = typeof app
 
-export const int = z.string().transform((v) => {
+export const strInt = z.string().transform((v) => {
   const n = parseInt(v)
   if (isNaN(n)) throw new Error('Invalid number')
   return n
 })
-
-// const what = procedure()
-//   .input(int)
-//   .action(async (c) => {})
-
-// what('10')
-// make a zod schema that takes a string a parse to a vlid number

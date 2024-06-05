@@ -144,7 +144,9 @@ export type ParseInput<T> = T extends z.ZodType
   ? T['_input']
   : T extends Record<string, z.ZodType>
     ? z.ZodObject<T>['_input']
-    : Expected<z.ZodType, T>
+    : T extends undefined
+      ? void
+      : Expected<z.ZodType, T>
 
 export type AnyConfig = Config<any, any>
 export type AnyInternals = Internals<any, any, any>

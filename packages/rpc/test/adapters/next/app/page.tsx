@@ -1,14 +1,22 @@
 import { getPost } from './actions'
-import { Component } from './component'
+import { Client } from './client'
+import { Component, PostForm, Posts } from './component'
+
+const params = { id: (Math.floor(Math.random() * 20) + 1).toString() }
 
 export default async function Home() {
-  const data = await getPost({ postId: 1 })
-  console.log({ data })
+  const data = await getPost({ postId: params.id })
 
   return (
-    <main className="flex flex-col min-h-screen bg-red-200 items-center justify-center">
-      Server: {data}
+    <main>
+      <div>
+        SERVER
+        <pre>{JSON.stringify(data, null, 2)}</pre>
+      </div>
       <Component />
+      <Posts />
+      <PostForm />
+      <Client />
     </main>
   )
 }

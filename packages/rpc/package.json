@@ -1,6 +1,6 @@
 {
-  "name": "@jcel/rpc",
-  "version": "0.0.12",
+  "name": "@calap/pcall",
+  "version": "0.0.1",
   "author": "Jordi Calafat",
   "license": "MIT",
   "type": "module",

@@ -1,6 +1,7 @@
 import { createProxy } from './proxy'
 import { type Router } from './router'
 import { type DecorateCaller } from './types'
+// import { RPCRequest } from './rpc'
 
 async function _fetch(url: string, body: unknown) {
   const res = await fetch(url, {
@@ -15,6 +16,10 @@ async function _fetch(url: string, body: unknown) {
 export interface ClientConfig {
   url: string
 }
+
+// implment a batch
+
+class Batch {}
 
 export function client<T extends Router>(config: ClientConfig) {
   // const url = new URL(config.url)
