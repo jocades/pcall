@@ -3,8 +3,8 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "dev": "bun --watch packages/rpc/test/server.test.ts",
-    "dev:next": "bun --cwd packages/rpc/test/adapters/next dev",
+    "dev": "bun --watch packages/pcall/test/server.test.ts",
+    "dev:next": "bun --cwd packages/pcall/test/adapters/next dev",
     "check": "tsc",
     "build": "scripts/build pcall",
     "publish": "bun scripts/publish.ts pcall"

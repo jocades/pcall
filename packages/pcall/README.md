@@ -31,10 +31,12 @@ const result = await hello({ name: 'World' })
 The validator can be a single zod schema or an object of zod schemas.
 
 ```ts
-procedure().input(z.string()) // single schema
-procedure().input({ name: z.string() }) // will be wrapped in z.object
-procedure().input(z.object({ name: z.string() })) // same as above
+pc().input(z.string()) // single schema
+pc().input({ name: z.string() }) // will be wrapped in z.object
+pc().input(z.object({ name: z.string() })) // same as above
 ```
+
+- The procedure is also re-exported as `pc` for convenience.
 
 <details>
 <summary>
@@ -129,16 +131,16 @@ Since server actions are just functions, you can use a procedure as a server act
 'use server'
 
 import { z } from 'zod'
-import { procedure } from '@calap/pcall'
+import { pc } from '@calap/pcall'
 import { db, postSchema } from './db'
 import { auth } from './auth'
 
-export const getPost = procedure()
+export const getPost = pc()
   .input({ postId: z.coerce.number() })
   .output(postSchema)
   .action(async (c) => await db.posts.findById(c.input.postId))
 
-export const createPost = procedure()
+export const createPost = pc()
   .use(auth)
   .input({ title: z.string() })
   .output(postSchema)
@@ -176,7 +178,7 @@ export default async function Page({ params }) {
 
 'use client'
 
-import { useMutation } from 'react-query'
+import { useMutation } from '@tanstack/react-query'
 import { createPost } from '@/actions'
 
 export function PostForm() {
@@ -214,39 +216,22 @@ Compose procedures using a router.
 import { router, procedure } from '@calap/pcall'
 
 const usersRouter = router({
-  list: procedure().action(async () => await db.users.find()),
-  getById: procedure()
-    .input({ userId: z.number() })
+  list: pc().action(async () => await db.users.find()),
+  create: pc()
+    .input({ name: z.string() })
     .action(async ({ input }) => {
-      return await db.users.findById(input.userId)
+      return await db.users.create(input)
     }),
 })
 
 export const app = router({
-  ping: procedure().action(() => 'pong'),
+  ping: pc().action(() => 'pong'),
   users: usersRouter,
 })
 
 // export the type for the client if needed
 export type AppRouter = typeof app
 ```
-
-<!-- ### 4.1. Initialize the router and handle requests.
-
-```ts
-import { app } from './app'
-
-// Setup inner machinery.
-const handle = app.init()
-
-const req = {
-  path: 'users.list',
-  body: undefined,
-}
-
-// Handle the request.
-const result = handle(req)
-``` -->
 
 ## 4. Server
 
@@ -293,7 +278,7 @@ The router can be adapted to any library, framework or service which follows the
 import { handle } from '@calap/pcall/next'
 
 const app = router({
-  ping: procedure().action(() => 'pong'),
+  ping: pc().action(() => 'pong'),
 })
 
 export const POST = handle(app)
@@ -310,7 +295,10 @@ export const POST = handle(app)
 
 ```ts
 import { handle } from '@calap/pcall/bun'
-import { app } from './app'
+
+const app = router({
+  ping: pc().action(() => 'pong'),
+})
 
 export default handle(app)
 ```
@@ -353,7 +341,7 @@ There is no need to **import** the router itself in the client side, **just the 
 ### X.1. Client with React Query
 
 ```tsx
-import { useQuery } from 'react-query'
+import { useQuery } from '@tanstack/react-query'
 import { client } from '@calap/pcall'
 import type { AppRouter } from './server'
 

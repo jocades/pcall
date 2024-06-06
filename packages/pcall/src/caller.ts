@@ -1,6 +1,6 @@
 import { createProxy } from './proxy'
 import { type Router } from './router'
-import type { RPCRequest } from './rpc'
+import { RPCRequest } from './rpc'
 import type { DecorateCaller } from './types'
 
 /**
@@ -30,10 +30,11 @@ export function factory<T extends Router>(router: T) {
    */
   return function caller(ctx?: unknown) {
     return createProxy<DecorateCaller<T['$def']>>((path, args) => {
-      const req: RPCRequest = {
-        path: path.join('.'),
-        body: args[0],
-      }
+      const method = path.join('.')
+      const params = args[0]
+
+      const req = new RPCRequest(method, params)
+
       return handle(req, ctx)
     })
   }

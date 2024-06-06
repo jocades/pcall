@@ -16,10 +16,15 @@ export type Router<T extends RouterDef = RouterDef> = {
   flat(): FlatRouter
   /**
    * Initialize the router handler.
+   * Handle an RPC request and return the result of the procedure.
    * ```ts
    * const handle = router.init()
    * const result = await handle({ path: 'users.list', body: null })
    * ```
+   * @param req  - The request object.
+   * @param ctx  - The context object to pass to the procedures.
+   * @throws {RPCError}
+   * @returns The result of the procedure.
    */
   init(): (req: RPCRequest, ctx?: unknown) => Promise<unknown>
 }
@@ -31,30 +36,21 @@ export function router<T extends RouterDef>(def: T): Router<T> {
     flat: () => flattenRouter(def),
     init() {
       const router = this.flat()
-      return (req, ctx) => handle(req, router, ctx)
+
+      return async (req, ctx) => {
+        const procedure = router.get(req.method)
+
+        if (!procedure) {
+          throw error('NOT_FOUND', `Path not found: ${req.method}`)
+        }
+
+        return await procedure(req.params, ctx)
+      }
     },
   }
 }
 
 export type FlatRouter = Map<string, AnyProcedure>
-
-export async function handle(
-  req: RPCRequest,
-  router: FlatRouter,
-  ctx?: unknown,
-): Promise<unknown> {
-  const procedure = router.get(req.path)
-
-  if (!procedure) {
-    throw error('NOT_FOUND', `Path not found: ${req.path}`)
-  }
-
-  try {
-    return await procedure(req.body, ctx)
-  } catch (err: any) {
-    throw error('INTERNAL_SERVER_ERROR', err.message)
-  }
-}
 
 export function flattenRouter(router: RouterDef): FlatRouter {
   const flatRouter: FlatRouter = new Map()

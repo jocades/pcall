@@ -20,6 +20,15 @@ export function randomKey(obj: Record<any, any>) {
   return keys[Math.floor(Math.random() * keys.length)]
 }
 
+/**
+ * Genarate a ~unique 12-character string.
+ */
+export function nanoid() {
+  const ts = Date.now().toString(36)
+  const rand = Math.random().toString(36).substring(2, 6)
+  return ts + rand
+}
+
 export function bench<T extends AnyFn>(
   fn: T,
   times = 1,

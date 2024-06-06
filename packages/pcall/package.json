@@ -1,6 +1,6 @@
 {
   "name": "@calap/pcall",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "Jordi Calafat",
   "license": "MIT",
   "type": "module",
@@ -29,8 +29,11 @@
     "url": "git+https://github.com/jocades/pcall.git"
   },
   "keywords": [
-    "bun",
     "rpc",
+    "json-rpc",
+    "typescript",
+    "type-safe",
+    "bun",
     "next",
     "procedure",
     "router",

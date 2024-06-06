@@ -4,6 +4,7 @@
     "baseUrl": ".",
     "outDir": "./dist",
     "sourceMap": true,
+    "removeComments": true,
   },
   "exclude": [
     "test"
