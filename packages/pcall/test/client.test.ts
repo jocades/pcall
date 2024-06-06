@@ -4,9 +4,35 @@ import type { AppRouter } from './mock'
 
 const api = client<AppRouter>({ url: 'http://localhost:8000' })
 
-await api.users.getById({ userId: 2 })
+// const tests = [api.ping(), api.users.list(), api.users.getById({ userId: 2 })]
 
-const tests = [api.ping(), api.users.list(), api.users.getById({ userId: 2 })]
+try {
+  const results = await Promise.all([
+    api.ping(),
+    api.ping(),
+    api.ping(),
+    api.ping(),
+    api.ping(),
+    api.ping(),
+    api.ping(),
+    api.ping(),
+    api.ping(),
+    api.ping(),
+    api.ping(),
+    api.ping(),
+    api.ping(),
+    api.ping(),
+    api.users.list(),
+    api.users.getById({ userId: 2 }),
+  ])
+  console.log(results)
+  console.log(results.length)
+} catch (err) {
+  console.error(err)
+}
+
+/* await api.users.getById({ userId: 2 })
+
 
 const rounds = 50
 
@@ -24,4 +50,4 @@ await bench(test)()
 const results = await Promise.all(tests)
 for (const result of results) {
   console.log(result)
-}
+} */

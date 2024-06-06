@@ -15,20 +15,20 @@ import { RPCError } from '../dist'
   return await res.json()
 } */
 
-async function _fetch<T>(batch: RPCRequest[], fail = false) {
+async function _fetch<T>(url: string, batch: RPCRequest[], fail = false) {
   if (fail) throw new Error('Test')
   console.log('FETCH', { batch })
   const responses = batch.map((req, i) => {
-    if (i == 1) {
-      return new RPCResponse(req.id, undefined, new RPCError('FORBIDDEN'))
-    }
+    // if (i == 1) {
+    //   return new RPCResponse(req.id, undefined, new RPCError('FORBIDDEN'))
+    // }
     return new RPCResponse(req.id, 'wtf')
   })
-  console.log({ responses })
+  console.log('== responses ==', responses)
   return responses
 }
 
-export interface ClientConfig {
+export interface ClientOptions {
   /**
    * The URL of the server.
    */
@@ -42,10 +42,12 @@ export interface ClientConfig {
    * The batch configuration.
    * @default { max: 10, timeout: 100 }
    */
-  batch?: {
-    max?: number
-    timeout?: number
-  }
+  batch?: BatchOptions
+}
+
+interface BatchOptions {
+  max?: number
+  timeout?: number
 }
 
 interface PromiseExecutor {
@@ -53,35 +55,47 @@ interface PromiseExecutor {
   reject(reason?: any): void
 }
 
+const MAX = 10
+const TIMEOUT = 500
+
 class Batch {
   private url: string
+  private max: number
   private timeout: number
   private timeoutId: Timer | null = null
   private requestId: number = 0
   private requests: RPCRequest[] = []
   private pendingRequests: Map<number, PromiseExecutor> = new Map()
 
-  constructor(url: string, timeout: number) {
+  constructor(url: string, opts: BatchOptions = {}) {
     this.url = url
-    this.timeout = timeout
+    this.max = opts.max ?? MAX
+    this.timeout = opts.timeout ?? TIMEOUT
   }
 
   addRequest(method: string, params?: unknown) {
     const req = new RPCRequest(this.requestId++, method, params)
     this.requests.push(req)
 
-    return new Promise((resolve, reject) => {
+    const promise = new Promise((resolve, reject) => {
       this.pendingRequests.set(req.id, { resolve, reject })
-
-      console.log('== PROMISE CB ==', this.pendingRequests)
-
-      if (!this.timeoutId) {
-        this.timeoutId = setTimeout(async () => {
-          await this.sendBatch()
-          this.timeoutId = null
-        }, this.timeout)
-      }
     })
+
+    if (this.requests.length >= this.max) {
+      console.log('== MAX ==')
+      if (this.timeoutId) {
+        clearTimeout(this.timeoutId)
+        this.timeoutId = null
+      }
+      this.sendBatch()
+    } else if (!this.timeoutId) {
+      this.timeoutId = setTimeout(() => {
+        this.sendBatch()
+        this.timeoutId = null
+      }, this.timeout)
+    }
+
+    return promise
   }
 
   private async sendBatch() {
@@ -91,7 +105,7 @@ class Batch {
     if (batch.length === 0) return
 
     try {
-      const responses = await _fetch<RPCResponse[]>(batch)
+      const responses = await _fetch<RPCResponse[]>(this.url, batch)
 
       for (const { id, result, error } of responses) {
         const request = this.pendingRequests.get(id)
@@ -110,7 +124,7 @@ class Batch {
         this.pendingRequests.delete(id)
       }
     } catch (err) {
-      for (const { reject } of Object.values(this.pendingRequests)) {
+      for (const { reject } of this.pendingRequests.values()) {
         reject(err)
       }
       this.pendingRequests.clear()
@@ -118,50 +132,13 @@ class Batch {
   }
 }
 
-const batch = new Batch('', 500)
-
-/* const r1 = batch.addRequest('ping')
-const r2 = batch.addRequest('posts.create', { title: 'wtf' })
-
-console.log('== ADDED ==', batch.pendingRequests)
-
-try {
-  console.log(await r1, await r2)
-} catch (err) {
-  console.log(err)
-}
-
-console.log('== AWAITED ==', batch.pendingRequests) */
-
-const reqs = [
-  batch.addRequest('ping'),
-  batch.addRequest('posts.create', { title: 'wtf' }),
-  batch.addRequest('x'),
-]
-
-try {
-  await Promise.all(reqs)
-} catch (err) {
-  console.error(err)
-}
-
-// console.log('== pending requests ==', batch.pendingRequests)
-
-// const p = new Promise((res, rej) => {
-//   sleep(1000).then(() => res('Done'))
-// })
-// console.log(p)
-//
-// p.then((res) => console.log(res))
-//
-// p.then((res) => console.error(res))
-
-export function client<T extends Router>(config: ClientConfig) {
-  // const url = new URL(config.url)
+export function client<T extends Router>(opts: ClientOptions) {
+  const batch = new Batch(opts.url, opts.batch)
 
   return createProxy<DecorateCaller<T['$def']>>((path, args) => {
     // url.searchParams.set('p', path.join('.'))
-    const url = config.url + '?p=' + path.join('.')
+    // const url = config.url + '?p=' + path.join('.')
     // return _fetch(url, args[0])
+    return batch.addRequest(path.join('.'), args[0])
   })
 }

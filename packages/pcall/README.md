@@ -1,4 +1,4 @@
-# RPC
+# PCALL
 
 Remote Procedure Call (RPC) over HTTP with end to end validation and type safety.
 
