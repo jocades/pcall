@@ -41,7 +41,7 @@ export function router<T extends RouterDef>(def: T): Router<T> {
         const procedure = router.get(req.method)
 
         if (!procedure) {
-          throw error('NOT_FOUND', `Path not found: ${req.method}`)
+          throw error('NOT_FOUND', `Method not found: ${req.method}`)
         }
 
         return await procedure(req.params, ctx)

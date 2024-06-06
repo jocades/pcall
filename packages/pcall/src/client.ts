@@ -5,7 +5,7 @@ import { type DecorateCaller } from './types'
 import { RPCRequest, RPCResponse } from './rpc'
 import { RPCError } from '../dist'
 
-/* async function _fetch<T>(url: string, body: unknown): Promise<T> {
+async function _fetch<T>(url: string, body: unknown): Promise<T> {
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -13,9 +13,9 @@ import { RPCError } from '../dist'
   })
 
   return await res.json()
-} */
+}
 
-async function _fetch<T>(url: string, batch: RPCRequest[], fail = false) {
+/* async function _fetch<T>(url: string, batch: RPCRequest[], fail = false) {
   if (fail) throw new Error('Test')
   console.log('FETCH', { batch })
   const responses = batch.map((req, i) => {
@@ -26,7 +26,7 @@ async function _fetch<T>(url: string, batch: RPCRequest[], fail = false) {
   })
   console.log('== responses ==', responses)
   return responses
-}
+} */
 
 export interface ClientOptions {
   /**
@@ -102,6 +102,8 @@ class Batch {
     const batch = this.requests.slice()
     this.requests.length = 0
 
+    console.log('== senging batch ==', batch.length)
+
     if (batch.length === 0) return
 
     try {
@@ -133,12 +135,26 @@ class Batch {
 }
 
 export function client<T extends Router>(opts: ClientOptions) {
-  const batch = new Batch(opts.url, opts.batch)
+  const batch =
+    opts.link === 'batch' ? new Batch(opts.url + '?batch', opts.batch) : null
 
   return createProxy<DecorateCaller<T['$def']>>((path, args) => {
-    // url.searchParams.set('p', path.join('.'))
-    // const url = config.url + '?p=' + path.join('.')
-    // return _fetch(url, args[0])
-    return batch.addRequest(path.join('.'), args[0])
+    const method = path.join('.')
+    const params = args[0]
+
+    return batch
+      ? batch.addRequest(method, params)
+      : linear(opts.url, method, params)
   })
+}
+
+async function linear(url: string, method: string, params: unknown) {
+  const request = new RPCRequest(1, method, params)
+  const response = await _fetch<RPCResponse>(url, request)
+
+  if ('error' in response) {
+    throw response.error
+  }
+
+  return response.result
 }
