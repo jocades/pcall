@@ -4,7 +4,7 @@ import { client } from '@/client'
 import type { AppRouter } from '@/../test/mock'
 import { useQuery } from '@tanstack/react-query'
 
-const api = client<AppRouter>({ url: '/api' })
+const api = client<AppRouter>('/api', { link: 'batch', logger: true })
 
 export function Client() {
   const { data } = useQuery({
@@ -12,7 +12,7 @@ export function Client() {
     queryFn: async () => {
       return await Promise.all([
         api.ping(),
-        api.users.getById({ userId: 'xx' }),
+        api.users.getById({ userId: 1 }),
         api.posts.getById({ postId: 2 }),
       ])
     },

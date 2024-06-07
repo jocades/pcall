@@ -3,9 +3,8 @@ import { bench, isFn } from '@/util'
 import type { AppRouter } from './mock'
 import type { AnyFn } from '@/types'
 
-const api = client<AppRouter>({
-  url: 'http://localhost:8000/rpc',
-  link: 'linear',
+const api = client<AppRouter>('http://localhost:8000/rpc', {
+  link: 'batch',
   batch: {
     max: 50,
     timeout: 100,
@@ -20,28 +19,28 @@ try {
   const suite = pack(
     {
       fn: () => api.ping(),
-      length: 20,
+      length: 1,
     },
-    //   {
-    //     fn: () => api.users.getById({ userId: 10 }),
-    //     length: 20,
-    //   },
-    //   {
-    //     fn: () => api.users.create({ name: 'Jordi' }),
-    //     length: 20,
-    //   },
-    //   {
-    //     fn: () => api.posts.list(),
-    //     length: 20,
-    //   },
-    //   {
-    //     fn: () => api.posts.getById({ postId: 2 }),
-    //     length: 10,
-    //   },
-    //   {
-    //     fn: () => api.posts.create({ title: 'Jordi' }),
-    //     length: 10,
-    //   },
+    {
+      fn: () => api.users.getById({ userId: 1 }),
+      length: 1,
+    },
+    // {
+    //   fn: () => api.users.create({ name: 'Jordi' }),
+    //   length: 20,
+    // },
+    // {
+    //   fn: () => api.posts.list(),
+    //   length: 20,
+    // },
+    // {
+    //   fn: () => api.posts.getById({ postId: 2 }),
+    //   length: 10,
+    // },
+    // {
+    //   fn: () => api.posts.create({ title: 'Jordi' }),
+    //   length: 10,
+    // },
   )
   const results = await Promise.all(suite)
   console.log('RESULTS', results.length)
