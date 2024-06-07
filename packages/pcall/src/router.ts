@@ -37,14 +37,14 @@ export function router<T extends RouterDef>(def: T): Router<T> {
     init() {
       const router = this.flat()
 
-      return async (req, ctx) => {
+      return (req, ctx) => {
         const procedure = router.get(req.method)
 
         if (!procedure) {
           throw error('NOT_FOUND', `Method not found: ${req.method}`)
         }
 
-        return await procedure(req.params, ctx)
+        return procedure(req.params, ctx)
       }
     },
   }

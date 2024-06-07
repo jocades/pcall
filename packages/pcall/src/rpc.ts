@@ -1,7 +1,7 @@
 import { router } from './router'
-import { Builder } from './procedure'
-import type { RPCError } from './error'
-import { nanoid } from './util'
+import { Builder, parse } from './procedure'
+import { RPCError, error } from './error'
+import { z } from 'zod'
 
 /**
  * @module RPC
@@ -21,6 +21,17 @@ export class RPCRequest {
     this.method = method
     this.params = params
   }
+
+  static async from<R, T extends { json(): R } = any>(what: T) {
+    try {
+      return (await what.json()) as R extends [] ? RPCRequest[] : RPCRequest
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        throw error('PARSE_ERROR')
+      }
+      throw err
+    }
+  }
 }
 
 export class RPCResponse {
@@ -34,7 +45,40 @@ export class RPCResponse {
     this.result = result
     this.error = error
   }
+
+  static send(id: number, result: unknown, error?: RPCError) {
+    return Response.json(new RPCResponse(id, result, error))
+  }
+
+  /**
+   * Check for an RPCError.
+   * @throws If the error does not match.
+   * @returns RPCResponse without result with error.
+   */
+  static error(id: number, err: any) {
+    if (!(err instanceof RPCError)) {
+      throw err
+    }
+    return new RPCResponse(id, undefined, err)
+  }
+
+  static async from<R, T extends { json(): R } = any>(what: T) {
+    try {
+      return (await what.json()) as R extends [] ? RPCResponse[] : RPCResponse
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        throw error('PARSE_ERROR')
+      }
+      throw err
+    }
+  }
 }
+
+// const rpc = RPCResponse.error(-1, error('PARSE_ERROR', 'Error parsing body'))
+// const res = rpc.json()
+
+// const res = Response.json(rpc)
+// console.log(await res.json())
 
 export function initRPC<C>() {
   return {

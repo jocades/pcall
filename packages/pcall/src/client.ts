@@ -1,32 +1,7 @@
-import { sleep } from 'bun'
 import { createProxy } from './proxy'
 import { type Router } from './router'
 import { type DecorateCaller } from './types'
 import { RPCRequest, RPCResponse } from './rpc'
-import { RPCError } from '../dist'
-
-async function _fetch<T>(url: string, body: unknown): Promise<T> {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: body ? JSON.stringify(body) : undefined,
-  })
-
-  return await res.json()
-}
-
-/* async function _fetch<T>(url: string, batch: RPCRequest[], fail = false) {
-  if (fail) throw new Error('Test')
-  console.log('FETCH', { batch })
-  const responses = batch.map((req, i) => {
-    // if (i == 1) {
-    //   return new RPCResponse(req.id, undefined, new RPCError('FORBIDDEN'))
-    // }
-    return new RPCResponse(req.id, 'wtf')
-  })
-  console.log('== responses ==', responses)
-  return responses
-} */
 
 export interface ClientOptions {
   /**
@@ -50,13 +25,37 @@ interface BatchOptions {
   timeout?: number
 }
 
+export function client<T extends Router>(opts: ClientOptions) {
+  const batch =
+    opts.link === 'batch' ? new Batch(opts.url + '?batch', opts.batch) : null
+
+  return createProxy<DecorateCaller<T['$def']>>((path, args) => {
+    const method = path.join('.')
+    const params = args[0]
+
+    return batch
+      ? batch.addRequest(method, params)
+      : linear(opts.url, method, params)
+  })
+}
+
+async function _fetch<T>(url: string, body: unknown) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  })
+
+  return RPCResponse.from<T>(res)
+}
+
 interface PromiseExecutor {
   resolve(value: unknown): void
   reject(reason?: any): void
 }
 
 const MAX = 10
-const TIMEOUT = 500
+const TIMEOUT = 100
 
 class Batch {
   private url: string
@@ -82,15 +81,17 @@ class Batch {
     })
 
     if (this.requests.length >= this.max) {
-      console.log('== MAX ==')
+      // console.log('== max reached ==')
       if (this.timeoutId) {
+        // console.log('== clearing timeout ==')
         clearTimeout(this.timeoutId)
         this.timeoutId = null
       }
-      this.sendBatch()
+      this.send()
     } else if (!this.timeoutId) {
+      // console.log('== setting timeout ==')
       this.timeoutId = setTimeout(() => {
-        this.sendBatch()
+        this.send()
         this.timeoutId = null
       }, this.timeout)
     }
@@ -98,28 +99,37 @@ class Batch {
     return promise
   }
 
-  private async sendBatch() {
+  private async send() {
     const batch = this.requests.slice()
     this.requests.length = 0
 
-    console.log('== senging batch ==', batch.length)
+    // console.log(`== sending batch | requests: ${batch.length} ==`)
 
     if (batch.length === 0) return
 
+    // logger('>>', 'batch', batch, 'blue')
+    log.info('batch', batch)
+
     try {
-      const responses = await _fetch<RPCResponse[]>(this.url, batch)
+      const responses = await _fetch<[]>(this.url, batch)
 
       for (const { id, result, error } of responses) {
         const request = this.pendingRequests.get(id)
 
         if (!request) {
+          // logger('<<', 'batch', { id, result, error }, 'red')
+          log.error('batch', { id, result, error })
           console.error('No pending request with ID', id)
-          return
+          continue
         }
 
         if (error) {
+          // logger('<<', 'batch', { id, result, error }, 'red')
+          log.error('batch', { id, result, error })
           request.reject(error)
         } else {
+          // logger('<<', 'batch', { id, result, error }, 'green')
+          log.ok('batch', { id, result, error })
           request.resolve(result)
         }
 
@@ -134,27 +144,60 @@ class Batch {
   }
 }
 
-export function client<T extends Router>(opts: ClientOptions) {
-  const batch =
-    opts.link === 'batch' ? new Batch(opts.url + '?batch', opts.batch) : null
-
-  return createProxy<DecorateCaller<T['$def']>>((path, args) => {
-    const method = path.join('.')
-    const params = args[0]
-
-    return batch
-      ? batch.addRequest(method, params)
-      : linear(opts.url, method, params)
-  })
-}
-
 async function linear(url: string, method: string, params: unknown) {
   const request = new RPCRequest(1, method, params)
-  const response = await _fetch<RPCResponse>(url, request)
+  // logger('>>', request.method, request, 'blue')
+  log.info(request.method, request)
+  const response = await _fetch(url, request)
 
   if ('error' in response) {
+    // logger('<<', request.method, response, 'red')
+    log.error(request.method, response)
     throw response.error
   }
 
+  // logger('<<', request.method, response, 'green')
+  log.ok(request.method, response)
+
   return response.result
 }
+
+function css(styles: Record<string, string>) {
+  return Object.entries(styles)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join('; ')
+}
+
+const colors = {
+  gray: 'rgba(100, 100, 100, 0.2)',
+  blue: '#add8e6',
+  green: '#90ee90',
+  red: '#ffcccb',
+}
+
+const styles = css({
+  padding: '2px 2px',
+  color: 'black',
+  ['border-radius']: '4px',
+})
+
+function logger(
+  dir: 'up' | 'down',
+  method: string,
+  data: unknown,
+  color: keyof typeof colors = 'gray',
+) {
+  console.log(
+    `%c %s %s %O`,
+    styles + `;background: ${colors[color]}`,
+    dir === 'up' ? '>>' : '<<',
+    method,
+    data,
+  )
+}
+
+const log = {
+  info: (method, data) => logger('up', method, data, 'blue'),
+  ok: (method, data) => logger('down', method, data, 'green'),
+  error: (method, data) => logger('down', method, data, 'red'),
+} satisfies Record<string, (method: string, data: unknown) => void>

@@ -33,7 +33,7 @@ export function factory<T extends Router>(router: T) {
       const method = path.join('.')
       const params = args[0]
 
-      const req = new RPCRequest(method, params)
+      const req = new RPCRequest(1, method, params)
 
       return handle(req, ctx)
     })

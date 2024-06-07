@@ -1,24 +1,50 @@
 import { client } from '@/client'
-import { bench } from '@/util'
+import { bench, isFn } from '@/util'
 import type { AppRouter } from './mock'
+import type { AnyFn } from '@/types'
 
 const api = client<AppRouter>({
-  url: 'http://localhost:8000',
-  link: 'batch',
+  url: 'http://localhost:8000/rpc',
+  link: 'linear',
   batch: {
-    max: 20,
+    max: 50,
     timeout: 100,
   },
 })
 
-// const tests = [api.ping(), api.users.list(), api.users.getById({ userId: 2 })]
+function pack(...args: { fn: AnyFn; length: number }[]) {
+  return args.flatMap(({ fn, length }) => Array.from({ length }, fn))
+}
 
 try {
-  const results = await Promise.all(
-    Array.from({ length: 15 }, () => api.ping()),
+  const suite = pack(
+    {
+      fn: () => api.ping(),
+      length: 20,
+    },
+    //   {
+    //     fn: () => api.users.getById({ userId: 10 }),
+    //     length: 20,
+    //   },
+    //   {
+    //     fn: () => api.users.create({ name: 'Jordi' }),
+    //     length: 20,
+    //   },
+    //   {
+    //     fn: () => api.posts.list(),
+    //     length: 20,
+    //   },
+    //   {
+    //     fn: () => api.posts.getById({ postId: 2 }),
+    //     length: 10,
+    //   },
+    //   {
+    //     fn: () => api.posts.create({ title: 'Jordi' }),
+    //     length: 10,
+    //   },
   )
-  console.log(results)
-  console.log(results.length)
+  const results = await Promise.all(suite)
+  console.log('RESULTS', results.length)
 } catch (err) {
   console.error(err)
 }

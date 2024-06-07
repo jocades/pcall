@@ -105,7 +105,7 @@ export class Builder<I, O, C> {
 }
 
 export function parse<T>(
-  data: T,
+  data: unknown,
   schema: undefined | z.ZodType,
   status: RPCErrorStatus,
 ) {
@@ -119,15 +119,15 @@ export function parse<T>(
     throw error(status, parsed.error.message)
   }
 
-  return parsed.data
+  return parsed.data as T
 }
 
 export function parseInput<I>(input: I, schema: undefined | z.ZodTypeAny) {
-  return parse(input, schema, 'BAD_REQUEST')
+  return parse(input, schema, 'INPUT_PARSE_ERROR')
 }
 
 export function parseOutput<O>(output: O, schema: undefined | z.ZodTypeAny) {
-  return parse(output, schema, 'INTERNAL_SERVER_ERROR')
+  return parse(output, schema, 'OUTPUT_PARSE_ERROR')
 }
 
 export function isZodSchema(value: unknown): value is z.ZodTypeAny {

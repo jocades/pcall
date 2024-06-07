@@ -1,8 +1,4 @@
-import { router, procedure } from '@/..'
 import { handle } from '@/adapters/next'
-
-const app = router({
-  ping: procedure().action(() => 'pong'),
-})
+import { app } from '@/../test/mock'
 
 export const POST = handle(app)

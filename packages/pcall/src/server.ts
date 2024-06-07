@@ -7,21 +7,21 @@ import { Env } from './_env'
 import { RPCError, error } from './error'
 import { RPCRequest, RPCResponse } from './rpc'
 
-export interface ServeConfig {
+export interface ServeOptions {
   port?: number
   headers?: HeadersInit
   context?: AnyObject | ((req: Request) => MaybePromise<AnyObject>)
 }
 
-export function serve(router: Router, config?: ServeConfig): Server {
-  return Bun.serve(handle(router, config))
+export function serve(router: Router, opts?: ServeOptions): Server {
+  return Bun.serve(handle(router, opts))
 }
 
 export function fetchHandler(
   router: Router,
-  config: Omit<ServeConfig, 'port'> = {},
+  opts: Omit<ServeOptions, 'port'> = {},
 ) {
-  const { headers, context } = config
+  const { headers, context } = opts
   const ctxIsFn = isFn(context)
 
   const handle = router.init()
@@ -42,52 +42,26 @@ export function fetchHandler(
       const ctx = ctxIsFn ? await context(req) : context
 
       if (url.searchParams.has('batch')) {
-        const requests = await json<RPCRequest[]>(req)
-
-        if (!requests) {
-          return Response.json(
-            new RPCResponse(
-              0,
-              undefined,
-              error('PARSE_ERROR', 'error parsing body'),
-            ),
-          )
-        }
+        const requests = await RPCRequest.from<[]>(req)
 
         console.log(requests.length, 'requests')
-        // console.log(requests)
 
-        const results = await Promise.all(
+        const responses = await Promise.all(
           requests.map(async (req) => {
             return handle(req, ctx)
               .then((result) => new RPCResponse(req.id, result))
-              .catch((err) => new RPCResponse(req.id, undefined, err))
+              .catch((err) => RPCResponse.error(req.id, err))
           }),
         )
 
-        return Response.json(results)
+        return Response.json(responses, { headers })
       }
 
-      const request = await json<RPCRequest>(req)
-
-      if (!request) {
-        return Response.json(
-          new RPCResponse(
-            0,
-            undefined,
-            error('PARSE_ERROR', 'error parsing body'),
-          ),
-        )
-      }
+      const request = await RPCRequest.from(req)
 
       const response = await handle(request, ctx)
         .then((result) => new RPCResponse(request.id, result))
-        .catch((err) => {
-          if (!(err instanceof RPCError)) {
-            throw err
-          }
-          return new RPCResponse(request.id, undefined, err)
-        })
+        .catch((err) => RPCResponse.error(request.id, err))
 
       if (Env.DEBUG) {
         console.log(request)
@@ -96,7 +70,12 @@ export function fetchHandler(
 
       return Response.json(response, { headers })
     } catch (err) {
-      return new Response('INTERNAL_SERVER_ERROR', { status: 5000 })
+      if (err instanceof RPCError) {
+        return RPCResponse.send(-1, undefined, err)
+      }
+      // TODO: add onError option
+      console.error(err)
+      return new Response('Internal Server Error', { status: 500 })
     } finally {
       time()
     }
@@ -117,17 +96,6 @@ function getOrigin(req: Request) {
     referer: req.headers.get('Referer'),
     origin: req.headers.get('Origin'),
     host: req.headers.get('Host'),
-  }
-}
-
-async function json<R, T extends { json(): R } = any>(what: T) {
-  try {
-    return await what.json()
-  } catch (err) {
-    if (err instanceof SyntaxError) {
-      return undefined
-    }
-    throw err
   }
 }
 

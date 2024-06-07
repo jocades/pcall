@@ -4,8 +4,7 @@ import { app } from './mock'
 const server = serve(app, {
   context(req) {
     return {
-      req,
-      user: { id: 1 },
+      auth: req.headers.get('x-token'),
     }
   },
 })

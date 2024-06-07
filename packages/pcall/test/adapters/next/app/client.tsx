@@ -9,7 +9,13 @@ const api = client<AppRouter>({ url: '/api' })
 export function Client() {
   const { data } = useQuery({
     queryKey: ['client-test'],
-    queryFn: () => api.ping(),
+    queryFn: async () => {
+      return await Promise.all([
+        api.ping(),
+        api.users.getById({ userId: 'xx' }),
+        api.posts.getById({ postId: 2 }),
+      ])
+    },
   })
 
   return <pre>{JSON.stringify(data, null, 2)}</pre>

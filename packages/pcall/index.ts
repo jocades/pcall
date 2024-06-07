@@ -24,14 +24,14 @@ export {
 export {
   // Server
   serve,
-  type ServeConfig,
+  type ServeOptions,
 } from './src/server'
 
 // Caller
 export { factory } from './src/caller'
 
 // Client
-export { client, type ClientConfig } from './src/client'
+export { client, type ClientOptions } from './src/client'
 
 // Error
 export { RPCError } from './src/error'

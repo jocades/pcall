@@ -1,11 +1,11 @@
 import type { Router } from '../router'
-import { fetchHandler, type ServeConfig } from '../server'
+import { fetchHandler, type ServeOptions } from '../server'
 
 /**
  * @example
  * ```ts
  * const app = router({
- *   ping: procedure().action(() => 'pong'),
+ *   ping: pc().action(() => 'pong'),
  * })
  *
  * export const POST = handle(app, {
@@ -17,6 +17,6 @@ import { fetchHandler, type ServeConfig } from '../server'
  * })
  *```
  */
-export function handle(router: Router, config?: Omit<ServeConfig, 'port'>) {
-  return fetchHandler(router, config)
+export function handle(router: Router, opts?: Omit<ServeOptions, 'port'>) {
+  return fetchHandler(router, opts)
 }

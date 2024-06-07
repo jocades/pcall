@@ -1,10 +1,10 @@
 import type { Serve } from 'bun'
 import type { Router } from '../router'
-import { fetchHandler, type ServeConfig } from '../server'
+import { fetchHandler, type ServeOptions } from '../server'
 
-export function handle(router: Router, config?: ServeConfig): Serve {
+export function handle(router: Router, opts?: ServeOptions): Serve {
   return {
-    port: config?.port ?? 8000,
-    fetch: fetchHandler(router, config),
+    port: opts?.port ?? 8000,
+    fetch: fetchHandler(router, opts),
   }
 }

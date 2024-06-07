@@ -1,4 +1,4 @@
-export function error(status: RPCErrorStatus, message: string): RPCError {
+export function error(status: RPCErrorStatus, message?: string): RPCError {
   return new RPCError(status, message)
 }
 
@@ -29,6 +29,8 @@ export const RPC_ERROR_CODES_BY_STATUS = {
    * An error occurred on the server while parsing the JSON text.
    */
   PARSE_ERROR: 418,
+  INPUT_PARSE_ERROR: 418,
+  OUTPUT_PARSE_ERROR: 418,
   /**
    * The JSON sent is not a valid Request object.
    */

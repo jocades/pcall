@@ -17,7 +17,6 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@jcel/rpc": "workspace:*",
     "zod": "^3.23.8",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
