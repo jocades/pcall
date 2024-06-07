@@ -39,7 +39,7 @@ interface Internals<I, O, C> {
   context: C
 }
 
-class Chain<T extends AnyFn> extends Array<T> {
+class Chain<T extends AnyFn = AnyFn> extends Array<T> {
   pipe(resolver: T) {
     return async (c: AnyConfig) => {
       for (const mw of this) c.ctx = await mw(c)
@@ -50,10 +50,14 @@ class Chain<T extends AnyFn> extends Array<T> {
 
 export class Builder<I, O, C> {
   private internals: AnyInternals
-  private middlewares = new Chain()
+  private middlewares: Chain
 
-  private constructor(config: Internals<I, O, C>) {
+  private constructor(
+    config: Internals<I, O, C>,
+    middlewares: Chain = new Chain(),
+  ) {
     this.internals = config
+    this.middlewares = middlewares
   }
 
   static default<T>() {
@@ -65,21 +69,18 @@ export class Builder<I, O, C> {
   }
 
   input<S extends Schema>(schema: S): Builder<S, O, C> {
-    if (!isZodSchema(schema) && isObj(schema)) {
-      this.internals.input = z.object(schema)
-    } else {
-      this.internals.input = schema
-    }
-    return this as any
+    this.internals.input = this.getSchema(schema)
+    return new Builder(this.internals, this.middlewares)
   }
 
   output<S extends Schema>(schema: S): Builder<I, S, C> {
-    if (!isZodSchema(schema) && isObj(schema)) {
-      this.internals.output = z.object(schema)
-    } else {
-      this.internals.output = schema
-    }
-    return this
+    this.internals.output = this.getSchema(schema)
+    return new Builder(this.internals, this.middlewares)
+  }
+
+  use<R>(middleware: Middleware<I, MaybePromise<R>, C>): Builder<I, O, R> {
+    this.middlewares.push(middleware)
+    return new Builder(this.internals, this.middlewares)
   }
 
   action<R extends O extends undefined ? any : Parse<O>>(
@@ -98,9 +99,8 @@ export class Builder<I, O, C> {
     })
   }
 
-  use<R>(middleware: Middleware<I, MaybePromise<R>, C>): Builder<I, O, R> {
-    this.middlewares.push(middleware)
-    return this as any
+  private getSchema<S extends Schema>(schema: S) {
+    return !isZodSchema(schema) && isObj(schema) ? z.object(schema) : schema
   }
 }
 
