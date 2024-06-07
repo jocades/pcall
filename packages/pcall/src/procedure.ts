@@ -69,13 +69,17 @@ export class Builder<I, O, C> {
   }
 
   input<S extends Schema>(schema: S): Builder<S, O, C> {
-    this.internals.input = this.getSchema(schema)
-    return new Builder(this.internals, this.middlewares)
+    return new Builder(
+      { ...this.internals, input: this.getSchema(schema) } as any,
+      this.middlewares,
+    )
   }
 
   output<S extends Schema>(schema: S): Builder<I, S, C> {
-    this.internals.output = this.getSchema(schema)
-    return new Builder(this.internals, this.middlewares)
+    return new Builder(
+      { ...this.internals, output: this.getSchema(schema) },
+      this.middlewares,
+    )
   }
 
   use<R>(middleware: Middleware<I, MaybePromise<R>, C>): Builder<I, O, R> {

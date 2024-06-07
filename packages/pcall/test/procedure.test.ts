@@ -1,7 +1,32 @@
 import { expect, test } from 'bun:test'
 import { RPCError } from '..'
+import { postSchema, db, strInt } from './mock'
 import { pc } from '..'
 import { z } from 'zod'
+
+const user = {
+  id: 1,
+  name: 'John',
+  role: 'admin',
+}
+
+async function getSession(dont = false) {
+  return dont ? null : { user }
+}
+
+async function auth() {
+  const session = await getSession()
+  if (!session) throw new Error('Unauthorized')
+  return { user: session.user }
+}
+
+// @ts-ignore
+function admin({ ctx }) {
+  if (ctx.user.role !== 'admin') {
+    throw new Error('Forbidden')
+  }
+  return ctx
+}
 
 test('invalid input', async () => {
   const call = pc()
@@ -66,4 +91,46 @@ test('nested output schema', async () => {
     .action(() => ({ a: 1, b: { c: 2, d: { c: 'string' } } }))
 
   expect(await call()).toEqual({ a: 1, b: { c: 2, d: { c: 'string' } } })
+})
+
+test('middleware', async () => {
+  await pc()
+    .use(auth)
+    .action((c) => {
+      expect(c.ctx.user).toBe(user)
+    })()
+
+  await pc()
+    .use(auth)
+    .use(admin)
+    .action((c) => {
+      expect(c.ctx.user).toBe(user)
+    })()
+})
+
+test('reused middleware', async () => {
+  const authed = pc().use(auth)
+
+  await authed.action((c) => {
+    expect(c.ctx.user).toBe(user)
+  })()
+
+  const one = authed.input({ val: z.number() }).action((c) => {
+    expect(c.ctx.user).toBe(user)
+    return c.input.val
+  })
+
+  const two = authed.input({ val: z.string() }).action((c) => {
+    expect(c.ctx.user).toBe(user)
+    return c.input.val
+  })
+
+  expect(await one({ val: 1 })).toBe(1)
+  expect(await two({ val: 'str' })).toBe('str')
+
+  const admined = authed.use(admin)
+
+  await admined.action((c) => {
+    expect(c.ctx.user).toBe(user)
+  })()
 })

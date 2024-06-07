@@ -1,56 +1,59 @@
 import { client } from '@/client'
+import { test } from 'bun:test'
 import { bench, isFn } from '@/util'
 import type { AppRouter } from './mock'
 import type { AnyFn } from '@/types'
-
-const api = client<AppRouter>('http://localhost:8000/rpc', {
-  link: 'batch',
-  batch: {
-    max: 50,
-    timeout: 100,
-  },
-})
 
 function pack(...args: { fn: AnyFn; length: number }[]) {
   return args.flatMap(({ fn, length }) => Array.from({ length }, fn))
 }
 
-try {
+test('client batch', async () => {
+  const api = client<AppRouter>('http://localhost:8000/rpc', {
+    link: 'batch',
+    batch: {
+      max: 50,
+      timeout: 100,
+    },
+  })
+
   const suite = pack(
     {
       fn: () => api.ping(),
-      length: 1,
+      length: 50,
     },
+    { fn: () => api.users.list(), length: 20 },
     {
       fn: () => api.users.getById({ userId: 1 }),
-      length: 1,
+      length: 50,
     },
-    // {
-    //   fn: () => api.users.create({ name: 'Jordi' }),
-    //   length: 20,
-    // },
-    // {
-    //   fn: () => api.posts.list(),
-    //   length: 20,
-    // },
-    // {
-    //   fn: () => api.posts.getById({ postId: 2 }),
-    //   length: 10,
-    // },
-    // {
-    //   fn: () => api.posts.create({ title: 'Jordi' }),
-    //   length: 10,
-    // },
+    {
+      fn: () => api.users.create({ name: 'Jordi' }),
+      length: 20,
+    },
+    {
+      fn: () => api.posts.list(),
+      length: 20,
+    },
+    {
+      fn: () => api.posts.getById({ postId: 2 }),
+      length: 20,
+    },
+    {
+      fn: () => api.posts.create({ title: 'Jordi' }),
+      length: 20,
+    },
   )
-  const results = await Promise.all(suite)
-  console.log('RESULTS', results.length)
-} catch (err) {
-  console.error(err)
-}
 
-/* await api.users.getById({ userId: 2 })
+  try {
+    const results = await Promise.all(suite)
+    console.log('RESULTS', results.length)
+  } catch (err) {
+    console.error(err)
+  }
+})
 
-
+/*
 const rounds = 50
 
 async function test() {

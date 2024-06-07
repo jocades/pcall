@@ -3,6 +3,7 @@ import { type Router } from './router'
 import { type DecorateCaller } from './types'
 import { RPCRequest, RPCResponse } from './rpc'
 import { isFn } from './util'
+import { Env } from './_env'
 
 export interface ClientOptions {
   /**
@@ -103,15 +104,15 @@ class Batch {
     })
 
     if (this.requests.length >= this.max) {
-      // console.log('== max reached ==')
+      this.debug(`== max reached | requests: ${this.requests.length} ==`)
       if (this.timeoutId) {
-        // console.log('== clearing timeout ==')
+        this.debug(`== clearing timeout | requests: ${this.requests.length} ==`)
         clearTimeout(this.timeoutId)
         this.timeoutId = null
       }
       this.send()
     } else if (!this.timeoutId) {
-      // console.log('== setting timeout ==')
+      this.debug(`== setting timeout | requests: ${this.requests.length} ==`)
       this.timeoutId = setTimeout(() => {
         this.send()
         this.timeoutId = null
@@ -125,7 +126,7 @@ class Batch {
     const batch = this.requests.slice()
     this.requests.length = 0
 
-    // console.log(`== sending batch | requests: ${batch.length} ==`)
+    this.debug(`== sending batch | requests: ${batch.length} ==`)
 
     if (batch.length === 0) return
 
@@ -159,6 +160,10 @@ class Batch {
       }
       this.pendingRequests.clear()
     }
+  }
+
+  private debug(...msg: unknown[]) {
+    if (Env.DEBUG) console.log(...msg)
   }
 }
 
