@@ -90,17 +90,23 @@ export class Builder<I, O, C> {
   action<R extends O extends undefined ? any : Parse<O>>(
     resolver: Middleware<I, MaybePromise<R>, C>,
   ): Procedure<I, R> {
-    return Object.assign(async (input: Parse<I>, ctx?: unknown) => {
-      const config = {
-        ctx,
-        input: parseInput(input, this.internals.input),
-      }
+    return Object.assign(
+      async (input: Parse<I>, ctx?: unknown) => {
+        const config = {
+          ctx,
+          input: parseInput(input, this.internals.input),
+        }
 
-      const dispatch = this.middlewares.pipe(resolver)
-      const result = await dispatch(config)
+        const dispatch = this.middlewares.pipe(resolver)
+        const result = await dispatch(config)
 
-      return parseOutput(result, this.internals.output)
-    })
+        return parseOutput(result, this.internals.output)
+      },
+      {
+        $input: this.internals.input,
+        $output: this.internals.output,
+      },
+    )
   }
 
   private getSchema<S extends Schema>(schema: S) {

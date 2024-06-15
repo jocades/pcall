@@ -41,7 +41,10 @@ const posts: Map<number, Post> = new Map(
 
 export const db = {
   users: {
-    find: () => Array.from(users.values()),
+    find: (opts: { limit?: number } = {}) => {
+      const arr = Array.from(users.values())
+      return opts.limit ? arr.slice(0, opts.limit) : arr
+    },
     create: (data: Omit<User, 'id'>) => {
       const user = { ...data, id: users.size + 1 }
       users.set(user.id, user)
@@ -55,7 +58,10 @@ export const db = {
     },
   },
   posts: {
-    find: () => Array.from(posts.values()),
+    find: (opts: { limit?: number } = {}) => {
+      const arr = Array.from(posts.values())
+      return opts.limit ? arr.slice(0, opts.limit) : arr
+    },
     create: (data: Omit<Post, 'id'>) => {
       const post = { ...data, id: posts.size + 1 }
       posts.set(post.id, post)
@@ -86,7 +92,7 @@ export const usersRouter = router({
 export const postsRouter = router({
   list: procedure().action(() => db.posts.find()),
   create: procedure()
-    .input({ title: z.string() })
+    .input({ title: z.string(), description: z.string() })
     .action(({ input }) => db.posts.create({ title: input.title })),
   getById: procedure()
     .input({ postId: z.number() })

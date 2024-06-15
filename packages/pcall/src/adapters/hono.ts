@@ -1,5 +1,5 @@
-import type { Router } from '@/router'
-import { fetchHandler, type ServeOptions } from '@/server'
+import type { Router } from '../router'
+import { fetchHandler, type ServeOptions } from '../server'
 import { type Context, type Next } from 'hono'
 
 export interface HonoOptions extends Omit<ServeOptions, 'port'> {}

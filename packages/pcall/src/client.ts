@@ -193,18 +193,18 @@ function css(styles: Record<string, string>) {
     .join('; ')
 }
 
+const styles = css({
+  padding: '2px 2px',
+  color: 'black',
+  ['border-radius']: '4px',
+})
+
 const colors = {
   gray: 'rgba(100, 100, 100, 0.2)',
   blue: '#add8e6',
   green: '#90ee90',
   red: '#ffcccb',
 }
-
-const styles = css({
-  padding: '2px 2px',
-  color: 'black',
-  ['border-radius']: '4px',
-})
 
 function log(
   dir: 'up' | 'down',

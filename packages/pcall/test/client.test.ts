@@ -22,7 +22,10 @@ test('client batch', async () => {
       fn: () => api.ping(),
       length: 50,
     },
-    { fn: () => api.users.list(), length: 20 },
+    {
+      fn: () => api.users.list(),
+      length: 20,
+    },
     {
       fn: () => api.users.getById({ userId: 1 }),
       length: 50,
