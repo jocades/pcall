@@ -1,4 +1,4 @@
-import { isObj } from './util'
+import { isFn, isObj } from './util'
 import type { AnyFn, MaybePromise } from './types'
 import { z } from 'zod'
 import { error, type RPCErrorStatus } from './error'
@@ -17,7 +17,8 @@ import { error, type RPCErrorStatus } from './error'
 export interface Procedure<I, O> {
   $input: Parse<I>
   $output: O
-  (input: ParseInput<I>, ctx?: unknown): Promise<O>
+  $procedure: true
+  (input: ParseInput<I>, env?: unknown): Promise<O>
 }
 
 export function procedure<C>() {
@@ -26,23 +27,23 @@ export function procedure<C>() {
 
 export type Schema = Record<string, z.ZodType> | z.ZodType
 
-export type Middleware<I, O, C> = (c: Config<I, C>) => O
+export type Middleware<I, O, C> = (c: Context<I, C>) => O
 
-export type Config<I, C> = I extends undefined
-  ? { ctx: C }
-  : { ctx: C; input: Parse<I> }
+export type Context<I, E> = I extends undefined
+  ? { env: E }
+  : { env: E; input: Parse<I> }
 
 /** @internal */
-interface Internals<I, O, C> {
+interface Internals<I, O, E> {
   input: I
   output: O
-  context: C
+  env: E
 }
 
 class Chain<T extends AnyFn = AnyFn> extends Array<T> {
   pipe(resolver: T) {
-    return async (c: AnyConfig) => {
-      for (const mw of this) c.ctx = await mw(c)
+    return async (c: AnyContext) => {
+      for (const mw of this) c.env = await mw(c)
       return resolver(c)
     }
   }
@@ -53,10 +54,10 @@ export class Builder<I, O, C> {
   private middlewares: Chain
 
   private constructor(
-    config: Internals<I, O, C>,
+    context: Internals<I, O, C>,
     middlewares: Chain = new Chain(),
   ) {
-    this.internals = config
+    this.internals = context
     this.middlewares = middlewares
   }
 
@@ -64,15 +65,15 @@ export class Builder<I, O, C> {
     return new Builder({
       input: undefined,
       output: undefined,
-      context: undefined as T,
+      env: undefined as T,
     })
   }
 
-  input<S extends Schema>(schema: S): Builder<S, O, C> {
+  input<S extends Schema>(schema: S) {
     return new Builder(
-      { ...this.internals, input: this.getSchema(schema) } as any,
+      { ...this.internals, input: this.getSchema(schema) },
       this.middlewares,
-    )
+    ) as Builder<S, O, C>
   }
 
   output<S extends Schema>(schema: S): Builder<I, S, C> {
@@ -89,24 +90,25 @@ export class Builder<I, O, C> {
 
   action<R extends O extends undefined ? any : Parse<O>>(
     resolver: Middleware<I, MaybePromise<R>, C>,
-  ): Procedure<I, R> {
+  ) {
     return Object.assign(
-      async (input: Parse<I>, ctx?: unknown) => {
-        const config = {
-          ctx,
+      async (input: Parse<I>, env?: unknown) => {
+        const context = {
+          env,
           input: parseInput(input, this.internals.input),
         }
 
         const dispatch = this.middlewares.pipe(resolver)
-        const result = await dispatch(config)
+        const result = await dispatch(context)
 
         return parseOutput(result, this.internals.output)
       },
       {
         $input: this.internals.input,
         $output: this.internals.output,
+        $procedure: true,
       },
-    )
+    ) as Procedure<I, R>
   }
 
   private getSchema<S extends Schema>(schema: S) {
@@ -144,6 +146,10 @@ export function isZodSchema(value: unknown): value is z.ZodTypeAny {
   return value instanceof z.ZodType
 }
 
+export function isProcedure(value: unknown): value is AnyProcedure {
+  return isFn(value) && '$procedure' in value
+}
+
 export type Parse<T> = T extends z.ZodType
   ? T['_output']
   : T extends Record<string, z.ZodType>
@@ -158,7 +164,7 @@ export type ParseInput<T> = T extends z.ZodType
       ? void
       : Expected<z.ZodType, T>
 
-export type AnyConfig = Config<any, any>
+export type AnyContext = Context<any, any>
 export type AnyInternals = Internals<any, any, any>
 export type AnyProcedure = Procedure<any, any>
 

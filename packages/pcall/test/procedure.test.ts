@@ -21,11 +21,11 @@ async function auth() {
 }
 
 // @ts-ignore
-function admin({ ctx }) {
-  if (ctx.user.role !== 'admin') {
+function admin({ env }) {
+  if (env.user.role !== 'admin') {
     throw new Error('Forbidden')
   }
-  return ctx
+  return env
 }
 
 test('invalid input', async () => {
@@ -97,14 +97,14 @@ test('middleware', async () => {
   await pc()
     .use(auth)
     .action((c) => {
-      expect(c.ctx.user).toBe(user)
+      expect(c.env.user).toBe(user)
     })()
 
   await pc()
     .use(auth)
     .use(admin)
     .action((c) => {
-      expect(c.ctx.user).toBe(user)
+      expect(c.env.user).toBe(user)
     })()
 })
 
@@ -112,16 +112,16 @@ test('reused middleware', async () => {
   const authed = pc().use(auth)
 
   await authed.action((c) => {
-    expect(c.ctx.user).toBe(user)
+    expect(c.env.user).toBe(user)
   })()
 
   const one = authed.input({ val: z.number() }).action((c) => {
-    expect(c.ctx.user).toBe(user)
+    expect(c.env.user).toBe(user)
     return c.input.val
   })
 
   const two = authed.input({ val: z.string() }).action((c) => {
-    expect(c.ctx.user).toBe(user)
+    expect(c.env.user).toBe(user)
     return c.input.val
   })
 
@@ -131,6 +131,6 @@ test('reused middleware', async () => {
   const admined = authed.use(admin)
 
   await admined.action((c) => {
-    expect(c.ctx.user).toBe(user)
+    expect(c.env.user).toBe(user)
   })()
 })

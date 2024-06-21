@@ -1,17 +1,12 @@
-'use client'
-
 import Link from 'next/link'
 import {
   Bell,
-  ChevronDownIcon,
-  ChevronUpIcon,
   CircleUser,
   Home,
   LineChart,
   Menu,
   Package,
   Package2,
-  RouteIcon,
   Search,
   ShoppingCart,
   Users,
@@ -36,13 +31,11 @@ import {
 } from './ui/dropdown-menu'
 import { Input } from './ui/input'
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet'
-import { useState } from 'react'
+import { Form } from './form'
+import { RouterItem } from './nav-item'
+import type { Panel } from '~/page'
 
-export function Dashboard() {
-  const [expanded, setExpanded] = useState(false)
-
-  const toggle = () => setExpanded((prev) => !prev)
-
+export function Dashboard({ panel }: { panel: Panel }) {
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
       <div className="hidden border-r bg-muted/40 md:block">
@@ -59,32 +52,7 @@ export function Dashboard() {
           </div>
           <div className="flex-1">
             <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-              <div
-                onClick={() => toggle()}
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:cursor-pointer"
-              >
-                <RouteIcon className="h-4 w-4" />
-                Users
-                <div className="flex-grow" />
-                {expanded ? (
-                  <ChevronUpIcon className="h-4 w-4" />
-                ) : (
-                  <ChevronDownIcon className="h-4 w-4" />
-                )}
-              </div>
-              {expanded && (
-                <div className="flex flex-col transition-all pl-4">
-                  <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-                    route 1
-                  </div>
-                  <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-                    route 2
-                  </div>
-                  <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-                    route 3
-                  </div>
-                </div>
-              )}
+              <RouterItem />
               <Link
                 href="#"
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
@@ -255,19 +223,10 @@ export function Dashboard() {
           <div className="flex items-center">
             <h1 className="text-lg font-semibold md:text-2xl">Inventory</h1>
           </div>
-          <div
-            className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm"
-            x-chunk="dashboard-02-chunk-1"
-          >
-            <div className="flex flex-col items-center gap-1 text-center">
-              <h3 className="text-2xl font-bold tracking-tight">
-                You have no products
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                You can start selling as soon as you add a product.
-              </p>
-              <Button className="mt-4">Add Product</Button>
-            </div>
+          <div className="flex flex-col flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm">
+            {Object.entries(panel).map(([method, els]) => {
+              return <Form key={method} method={method} els={els} />
+            })}
           </div>
         </main>
       </div>
