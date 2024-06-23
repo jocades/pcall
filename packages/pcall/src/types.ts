@@ -1,5 +1,6 @@
 import type { Router, RouterDef } from './router'
 import type { Parse, Procedure } from './procedure'
+import type { SocketClient } from './socket/socket-client'
 
 export type AnyObject<T = any> = Record<string, T>
 
@@ -17,6 +18,8 @@ export type DecorateCaller<T extends RouterDef> = {
     : T[K] extends Procedure<infer I, infer O>
       ? (input: I extends undefined ? void : Parse<I>) => Promise<O>
       : ErrorMessage<'Invalid route definition', T[K]>
+} & {
+  $ws: () => SocketClient
 }
 
 /** @internal */

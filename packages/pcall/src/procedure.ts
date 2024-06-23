@@ -21,6 +21,11 @@ export interface Procedure<I, O> {
   (input: ParseInput<I>, env?: unknown): Promise<O>
 }
 
+export interface Event {
+  $event: true
+  (emit: (data: unknown) => void): void
+}
+
 export function procedure<C>() {
   return Builder.default<C>()
 }
@@ -104,11 +109,15 @@ export class Builder<I, O, C> {
         return parseOutput(result, this.internals.output)
       },
       {
+        $procedure: true,
         $input: this.internals.input,
         $output: this.internals.output,
-        $procedure: true,
       },
     ) as Procedure<I, R>
+  }
+
+  event(callback: (emit: (data: unknown) => void) => void): Event {
+    return Object.assign(callback, { $event: true as const })
   }
 
   private getSchema<S extends Schema>(schema: S) {
@@ -148,6 +157,10 @@ export function isZodSchema(value: unknown): value is z.ZodTypeAny {
 
 export function isProcedure(value: unknown): value is AnyProcedure {
   return isFn(value) && '$procedure' in value
+}
+
+export function isEvent(value: unknown): value is Event {
+  return isFn(value) && '$event' in value
 }
 
 export type Parse<T> = T extends z.ZodType

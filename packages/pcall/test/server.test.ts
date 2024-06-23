@@ -2,9 +2,10 @@ import { serve } from '@/server'
 import { app } from './mock'
 
 const server = serve(app, {
+  port: 8000,
   context(req) {
     return {
-      auth: req.headers.get('x-token'),
+      token: req.headers.get('x'),
     }
   },
 })

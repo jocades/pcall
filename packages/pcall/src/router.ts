@@ -1,10 +1,11 @@
 import { error } from './error'
-import { type AnyProcedure } from './procedure'
+import { isEvent, type AnyProcedure, type Event } from './procedure'
 import { type RPCRequest } from './rpc'
+import { IO } from './socket/socket-server'
 import { isObj } from './util'
 
 export interface RouterDef {
-  [key: string]: AnyProcedure | Router
+  [key: string]: AnyProcedure | Router | Event
 }
 
 export type Router<T extends RouterDef = RouterDef> = {
@@ -22,12 +23,14 @@ export type Router<T extends RouterDef = RouterDef> = {
    * const result = await handle({ path: 'users.list', body: null })
    * ```
    * @param req  - The request object.
-   * @param ctx  - The context object to pass to the procedures.
+   * @param env  - The env object to pass to the procedures.
    * @throws {RPCError}
    * @returns The result of the procedure.
    */
-  init(): (req: RPCRequest, ctx?: unknown) => Promise<unknown>
+  init(): (req: RPCRequest, env?: unknown) => Promise<unknown>
 }
+
+export const io = new IO()
 
 export function router<T extends RouterDef>(def: T): Router<T> {
   return {
@@ -37,14 +40,14 @@ export function router<T extends RouterDef>(def: T): Router<T> {
     init() {
       const router = this.flat()
 
-      return (req, ctx) => {
+      return (req, env) => {
         const procedure = router.get(req.method)
 
         if (!procedure) {
           throw error('NOT_FOUND', `Method not found: ${req.method}`)
         }
 
-        return procedure(req.params, ctx)
+        return procedure(req.params, env)
       }
     },
   }
@@ -66,6 +69,10 @@ export function flattenRouter(router: RouterDef): FlatRouter {
 
       if (flatRouter.has(newPath)) {
         throw new Error(`Path already exists: ${newPath}`)
+      }
+
+      if (isEvent(procOrRouter)) {
+        continue
       }
 
       flatRouter.set(newPath, procOrRouter)

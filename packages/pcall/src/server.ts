@@ -4,13 +4,15 @@ import type { AnyObject, MaybePromise } from './types'
 import type { Server } from 'bun'
 import { isFn } from './util'
 import { Env } from './_env'
-import { RPCError, error } from './error'
+import { RPCError } from './error'
 import { RPCRequest, RPCResponse } from './rpc'
 
 export interface ServeOptions {
   port?: number
   headers?: HeadersInit
   context?: AnyObject | ((req: Request) => MaybePromise<AnyObject>)
+  endpoint?: string
+  onError?: (err: Error) => void
 }
 
 export function serve(router: Router, opts?: ServeOptions): Server {
@@ -21,17 +23,38 @@ export function fetchHandler(
   router: Router,
   opts: Omit<ServeOptions, 'port'> = {},
 ) {
-  const { headers, context } = opts
+  const { headers, context, endpoint = '/rpc' } = opts
   const ctxIsFn = isFn(context)
 
   const handle = router.init()
 
-  return async (req: Request): Promise<Response> => {
+  return async (req: Request, server: Server): Promise<Response> => {
     const url = new URL(req.url)
     const time = logger(req, url)
 
     if (req.method === 'OPTIONS') {
       return new Response(null, { headers })
+    }
+
+    // for now just use an endpoint and handle the socket events in the client side
+    // with the typical socket.on('event', cb) pattern.
+    // but maybe use a router endpoint to be a socket event handler like:
+    // users.onUpdate: pc().subscribe((emit) => {
+    //   emit(someData)
+    // })
+    // just have ONE connection per client.
+    // if it hits and websocket event endpoint just check if the client is already connected
+    // and if not upgrade the connection and close it when there are no more events to listen to.
+    if (url.pathname === `${endpoint}/ws`) {
+      if (server.upgrade(req, { data: { id: crypto.randomUUID() } })) {
+        // @ts-ignore
+        return
+      }
+      return new Response('Upgrade failed', { status: 500 })
+    }
+
+    if (url.pathname !== endpoint) {
+      return new Response('Not Found', { status: 404 })
     }
 
     if (req.method !== 'POST') {
@@ -69,12 +92,11 @@ export function fetchHandler(
       }
 
       return Response.json(response, { headers })
-    } catch (err) {
+    } catch (err: any) {
       if (err instanceof RPCError) {
         return RPCResponse.send(-1, undefined, err)
       }
-      // TODO: add onError option
-      console.error(err)
+      opts.onError?.(err) ?? console.error(err)
       return new Response('Internal Server Error', { status: 500 })
     } finally {
       time()

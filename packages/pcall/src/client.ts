@@ -4,6 +4,7 @@ import { type DecorateCaller } from './types'
 import { RPCRequest, RPCResponse } from './rpc'
 import { isFn } from './util'
 import { Env } from './_env'
+import { SocketClient } from './socket/socket-client'
 
 export interface ClientOptions {
   /**
@@ -21,6 +22,11 @@ export interface ClientOptions {
    * @default NODE_ENV === 'development'
    */
   logger?: boolean | (() => boolean)
+  /**
+   * Wether to initialize a WebSocket connection.
+   * @default false
+   */
+  websocket?: boolean
 }
 
 interface BatchOptions {
@@ -40,7 +46,10 @@ interface BatchOptions {
  * @param opts The client options.
  * @returns The client proxy.
  */
-export function client<T extends Router>(url: string, opts: ClientOptions) {
+export function client<T extends Router>(
+  url: string,
+  opts: ClientOptions = {},
+) {
   const loggerx = (isFn(opts.logger) ? opts.logger() : opts.logger)
     ? logger
     : undefined
@@ -53,6 +62,10 @@ export function client<T extends Router>(url: string, opts: ClientOptions) {
   return createProxy<DecorateCaller<T['$def']>>((path, args) => {
     const method = path.join('.')
     const params = args[0]
+
+    if (path.length === 1 && path[0] === '$ws') {
+      return new SocketClient(getWebSocketUrl(url), { dev: true })
+    }
 
     return batch
       ? batch.addRequest(method, params)
@@ -187,6 +200,20 @@ async function linear(
   return response.result
 }
 
+function getWebSocketUrl(url: string) {
+  let wsUrl = ''
+
+  if (url.startsWith('http://')) {
+    wsUrl = url.replace('http://', 'ws://')
+  } else if (url.startsWith('https://')) {
+    wsUrl = url.replace('https://', 'ws://')
+  } else {
+    wsUrl = `ws://${url}`
+  }
+
+  return wsUrl + '/ws'
+}
+
 function css(styles: Record<string, string>) {
   return Object.entries(styles)
     .map(([k, v]) => `${k}: ${v}`)
@@ -224,7 +251,7 @@ function log(
 type Logger = typeof logger
 
 const logger = {
-  info: (method, data) => log('up', method, data, 'blue'),
-  ok: (method, data) => log('down', method, data, 'green'),
-  error: (method, data) => log('down', method, data, 'red'),
+  info: (m, d) => log('up', m, d, 'blue'),
+  ok: (m, d) => log('down', m, d, 'green'),
+  error: (m, d) => log('down', m, d, 'red'),
 } satisfies Record<string, (method: string, data: unknown) => void>

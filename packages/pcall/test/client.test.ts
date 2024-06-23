@@ -43,7 +43,7 @@ test('client batch', async () => {
       length: 20,
     },
     {
-      fn: () => api.posts.create({ title: 'Jordi' }),
+      fn: () => api.posts.create({ title: 'Jordi', description: 'Desc' }),
       length: 20,
     },
   )

@@ -74,12 +74,6 @@ export class RPCResponse {
   }
 }
 
-// const rpc = RPCResponse.error(-1, error('PARSE_ERROR', 'Error parsing body'))
-// const res = rpc.json()
-
-// const res = Response.json(rpc)
-// console.log(await res.json())
-
 export function initRPC<C>() {
   return {
     router,

@@ -4,6 +4,9 @@ import { fetchHandler, type ServeOptions } from '../server'
 /**
  * @example
  * ```ts
+ * import { router, pc } from '@calap/pcall'
+ * import { handle } from '@calap/pcall/next'
+ *
  * const app = router({
  *   ping: pc().action(() => 'pong'),
  * })
@@ -17,6 +20,9 @@ import { fetchHandler, type ServeOptions } from '../server'
  * })
  *```
  */
-export function handle(router: Router, opts?: Omit<ServeOptions, 'port'>) {
+export function handle(
+  router: Router,
+  opts?: Omit<ServeOptions, 'port' | 'endpoint'>,
+) {
   return fetchHandler(router, opts)
 }

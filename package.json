@@ -5,12 +5,14 @@
   "scripts": {
     "dev": "bun --watch packages/pcall/test/server.test.ts",
     "dev:next": "bun --cwd packages/pcall/test/adapters/next dev",
+    "sub": "bun --cwd apps/sub dev",
     "check": "tsc",
     "build": "scripts/build pcall",
     "publish": "bun scripts/publish.ts pcall"
   },
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "devDependencies": {
     "@types/bun": "latest"

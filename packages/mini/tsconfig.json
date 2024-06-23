@@ -1,8 +1,0 @@
-{
-  "compilerOptions": {
-    "jsx": "react-jsx",
-    "jsxFactory": "h",
-    "jsxImportSource": "preact",
-  },
-  "extends": "../../tsconfig.json",
-}
