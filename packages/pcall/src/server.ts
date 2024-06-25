@@ -12,11 +12,21 @@ export interface ServeOptions {
   headers?: HeadersInit
   context?: AnyObject | ((req: Request) => MaybePromise<AnyObject>)
   endpoint?: string
-  onError?: (err: Error) => void
+  onError?: (err: Error) => MaybePromise<void>
 }
 
 export function serve(router: Router, opts?: ServeOptions): Server {
   return Bun.serve(handle(router, opts))
+}
+
+function open(file: string) {
+  return Bun.file(`${__dirname}/${file}`).text()
+}
+
+const staticDir = `${__dirname}/../static`
+
+function openStatic(file: string) {
+  return Bun.file(`${staticDir}/${file}`).text()
 }
 
 export function fetchHandler(
@@ -53,15 +63,33 @@ export function fetchHandler(
       return new Response('Upgrade failed', { status: 500 })
     }
 
-    if (url.pathname !== endpoint) {
-      return new Response('Not Found', { status: 404 })
+    if (url.pathname === '/') {
+      return new Response(await openStatic('index.html'), {
+        headers: { 'content-type': 'text/html' },
+      })
     }
 
-    if (req.method !== 'POST') {
-      return new Response('Method not allowed', { status: 405 })
+    if (url.pathname === '/bundle.js') {
+      await build()
+      const file = await openStatic('bundle.js')
+      return new Response(file, {
+        headers: { 'content-type': 'application/javascript' },
+      })
     }
 
     try {
+      if (url.pathname === `${endpoint}/test-error`) {
+        throw new Error('Test error')
+      }
+
+      if (url.pathname !== endpoint) {
+        return new Response('Not Found', { status: 404 })
+      }
+
+      if (req.method !== 'POST') {
+        return new Response('Method not allowed', { status: 405 })
+      }
+
       const ctx = ctxIsFn ? await context(req) : context
 
       if (url.searchParams.has('batch')) {
@@ -86,17 +114,23 @@ export function fetchHandler(
         .then((result) => new RPCResponse(request.id, result))
         .catch((err) => RPCResponse.error(request.id, err))
 
-      if (Env.DEBUG) {
+      /* if (Env.DEBUG) {
         console.log(request)
         console.log(response)
-      }
+      } */
 
       return Response.json(response, { headers })
     } catch (err: any) {
+      if (opts.onError) {
+        await opts.onError(err)
+      } else {
+        console.error(err)
+      }
+
       if (err instanceof RPCError) {
         return RPCResponse.send(-1, undefined, err)
       }
-      opts.onError?.(err) ?? console.error(err)
+
       return new Response('Internal Server Error', { status: 500 })
     } finally {
       time()
@@ -110,6 +144,21 @@ function logger(req: Request, url: URL) {
   return () => {
     const elapsed = (performance.now() - start).toFixed(3)
     console.log(`<- ${req.method} ${url.pathname} - ${elapsed}ms`)
+  }
+}
+
+async function build() {
+  const result = await Bun.build({
+    entrypoints: [`${staticDir}/main.ts`],
+    outdir: staticDir,
+    naming: `[dir]/bundle.[ext]`,
+  })
+
+  if (!result.success) {
+    console.error('Build failed')
+    for (const message of result.logs) {
+      console.error(message)
+    }
   }
 }
 

@@ -1,5 +1,4 @@
-import { procedure } from '@/procedure'
-import { router } from '@/router'
+import { procedure, router } from '..'
 import { z } from 'zod'
 
 export const userSchema = z.object({

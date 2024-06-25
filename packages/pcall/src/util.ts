@@ -8,6 +8,10 @@ export function isFn(value: unknown): value is Function {
   return typeof value === 'function'
 }
 
+export function isLiteral(value: unknown): value is string | number {
+  return typeof value === 'string' || typeof value === 'number'
+}
+
 export function merge<
   T extends AnyObject | undefined,
   U extends AnyObject | undefined,
@@ -143,5 +147,5 @@ const c = {
   },
 } satisfies Ctx<{ user: string }>
 
-const chain = pipe(add1, add2, add3)
+// const chain = pipe(add1, add2, add3)
 // chain(c)

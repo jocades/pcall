@@ -3,7 +3,6 @@ import { type Router } from './router'
 import { type DecorateCaller } from './types'
 import { RPCRequest, RPCResponse } from './rpc'
 import { isFn } from './util'
-import { Env } from './_env'
 import { SocketClient } from './socket/socket-client'
 
 export interface ClientOptions {
@@ -60,12 +59,12 @@ export function client<T extends Router>(
       : null
 
   return createProxy<DecorateCaller<T['$def']>>((path, args) => {
+    if (path.length === 1 && path[0] === '$ws') {
+      return new SocketClient(getWebSocketUrl(url))
+    }
+
     const method = path.join('.')
     const params = args[0]
-
-    if (path.length === 1 && path[0] === '$ws') {
-      return new SocketClient(getWebSocketUrl(url), { dev: true })
-    }
 
     return batch
       ? batch.addRequest(method, params)
@@ -176,7 +175,7 @@ class Batch {
   }
 
   private debug(...msg: unknown[]) {
-    if (Env.DEBUG) console.log(...msg)
+    if (true) console.log(...msg)
   }
 }
 

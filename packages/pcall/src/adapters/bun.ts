@@ -7,6 +7,7 @@ const io = new IO()
 
 io.on('connection', (socket) => {
   console.log('connected', socket.id)
+  console.log('clients', io.clients.size)
 
   socket.on('message', (data) => {
     console.log('message', data)

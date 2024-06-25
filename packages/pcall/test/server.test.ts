@@ -8,6 +8,9 @@ const server = serve(app, {
       token: req.headers.get('x'),
     }
   },
+  onError(err) {
+    console.log('Catched error:', err.message)
+  },
 })
 
 console.log(`🔥Listening at ${server.url.href.slice(0, -1)}`)
