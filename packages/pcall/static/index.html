@@ -1,13 +1,51 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script src="https://cdn.tailwindcss.com"></script>
     <title>Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://cdn.jsdelivr.net/npm/daisyui@4.12.8/dist/full.min.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: 'Roboto', sans-serif;
+      }
+    </style>
   </head>
-  <body>
-    <button>Click me!</button>
+  <body class="antialiased">
+    <main class="flex flex-col items-center justify-center h-screen">
+      <form id="login" class="flex rounded gap-4 mb-8" autocomplete="off">
+        <input
+          name="username"
+          type="text"
+          placeholder="Username"
+          class="input input-bordered"
+        />
+        <button type="submit" class="btn">Login</button>
+      </form>
+
+      <section class="flex flex-col border rounded size-1/2 justify-between">
+        <div class="flex flex-col h-16 border-b px-4 py-2">
+          <h1 class="text-xl font-semibold">Global Chat</h1>
+          <p id="users" class="text-sm text-zinc-400"></p>
+        </div>
+        <div id="messages" class="flex flex-col gap-2 overflow-y-auto"></div>
+        <form id="chat" class="flex gap-4 self-center" autocomplete="off">
+          <input name="message" type="text" class="input input-bordered" />
+          <button type="submit" class="btn">Send</button>
+        </form>
+      </section>
+    </main>
     <script type="module" src="bundle.js"></script>
   </body>
 </html>

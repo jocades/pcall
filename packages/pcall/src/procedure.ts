@@ -14,10 +14,12 @@ import { error, type RPCErrorStatus } from './error'
  * R -> Return Type
  */
 
+const $procedure = Symbol('procedure')
+
 export interface Procedure<I, O> {
   $input: Parse<I>
   $output: O
-  $procedure: true
+  [$procedure]: true
   (input: ParseInput<I>, env?: unknown): Promise<O>
 }
 
@@ -109,7 +111,7 @@ export class Builder<I, O, C> {
         return parseOutput(result, this.internals.output)
       },
       {
-        $procedure: true,
+        [$procedure]: true,
         $input: this.internals.input,
         $output: this.internals.output,
       },
@@ -156,7 +158,7 @@ export function isZodSchema(value: unknown): value is z.ZodTypeAny {
 }
 
 export function isProcedure(value: unknown): value is AnyProcedure {
-  return isFn(value) && '$procedure' in value
+  return isFn(value) && $procedure in value
 }
 
 export function isEvent(value: unknown): value is Event {

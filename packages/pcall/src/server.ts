@@ -1,21 +1,22 @@
 import { type Router } from './router'
 import { handle } from './adapters/bun'
 import type { AnyObject, MaybePromise } from './types'
-import type { Server } from 'bun'
+import type { Server, WebSocketHandler } from 'bun'
 import { isFn } from './util'
 import { Env } from './_env'
 import { RPCError } from './error'
 import { RPCRequest, RPCResponse } from './rpc'
 
-export interface ServeOptions {
+export interface ServeOptions<T = unknown> {
   port?: number
   headers?: HeadersInit
   context?: AnyObject | ((req: Request) => MaybePromise<AnyObject>)
   endpoint?: string
+  websocket?: WebSocketHandler<T>
   onError?: (err: Error) => MaybePromise<void>
 }
 
-export function serve(router: Router, opts?: ServeOptions): Server {
+export function serve<T>(router: Router, opts?: ServeOptions<T>): Server {
   return Bun.serve(handle(router, opts))
 }
 
@@ -29,10 +30,7 @@ function openStatic(file: string) {
   return Bun.file(`${staticDir}/${file}`).text()
 }
 
-export function fetchHandler(
-  router: Router,
-  opts: Omit<ServeOptions, 'port'> = {},
-) {
+export function fetchHandler<T>(router: Router, opts: ServeOptions<T> = {}) {
   const { headers, context, endpoint = '/rpc' } = opts
   const ctxIsFn = isFn(context)
 
@@ -90,7 +88,7 @@ export function fetchHandler(
         return new Response('Method not allowed', { status: 405 })
       }
 
-      const ctx = ctxIsFn ? await context(req) : context
+      const env = ctxIsFn ? await context(req) : context
 
       if (url.searchParams.has('batch')) {
         const requests = await RPCRequest.from<[]>(req)
@@ -99,7 +97,7 @@ export function fetchHandler(
 
         const responses = await Promise.all(
           requests.map(async (req) => {
-            return handle(req, ctx)
+            return handle(req, env)
               .then((result) => new RPCResponse(req.id, result))
               .catch((err) => RPCResponse.error(req.id, err))
           }),
@@ -110,7 +108,7 @@ export function fetchHandler(
 
       const request = await RPCRequest.from(req)
 
-      const response = await handle(request, ctx)
+      const response = await handle(request, env)
         .then((result) => new RPCResponse(request.id, result))
         .catch((err) => RPCResponse.error(request.id, err))
 

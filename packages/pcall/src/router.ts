@@ -1,16 +1,17 @@
 import { error } from './error'
 import { isEvent, type AnyProcedure, type Event } from './procedure'
 import { type RPCRequest } from './rpc'
-import { IO } from './socket/socket-server'
 import { isObj } from './util'
 
 export interface RouterDef {
   [key: string]: AnyProcedure | Router | Event
 }
 
+const $router = Symbol('router')
+
 export type Router<T extends RouterDef = RouterDef> = {
   $def: T
-  $router: true
+  [$router]: true
   /**
    * Flatten the router into a map of paths to procedures.
    */
@@ -30,12 +31,10 @@ export type Router<T extends RouterDef = RouterDef> = {
   init(): (req: RPCRequest, env?: unknown) => Promise<unknown>
 }
 
-export const io = new IO()
-
 export function router<T extends RouterDef>(def: T): Router<T> {
   return {
     $def: def,
-    $router: true,
+    [$router]: true,
     flat: () => flattenRouter(def),
     init() {
       const router = this.flat()
@@ -84,5 +83,5 @@ export function flattenRouter(router: RouterDef): FlatRouter {
 }
 
 export function isRouter(value: unknown): value is Router {
-  return isObj(value) && '$router' in value
+  return isObj(value) && $router in value
 }

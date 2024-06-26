@@ -1,8 +1,6 @@
 import { client } from '@/client'
 import type { AppRouter } from '../mock'
-import { SocketClient, webSocket } from '@/socket/socket-client'
 import { procedure, router } from '../..'
-import { createProxy } from '@/proxy'
 
 // const ws = webSocket('ws://localhost:8000/rpc/ws', { dev: true })
 

@@ -1,5 +1,5 @@
-import type { AnyFn } from '@/types'
 import type { ServerWebSocket, WebSocketHandler } from 'bun'
+import type { AnyFn } from '@/types'
 
 export interface Payload {
   type: 'object' | 'literal' | 'function'
@@ -39,6 +39,10 @@ export class IO {
     this.clients.forEach((socket) => socket.emit(event, data))
   }
 
+  addClient(ws: ServerWebSocket<{ id: string }>): void {
+    this.clients.set(ws.data.id, new Socket(ws, this))
+  }
+
   getClient(id: string): Socket {
     if (!this.clients.has(id)) {
       throw new Error(`No client with id: ${id}`)
@@ -46,19 +50,8 @@ export class IO {
     return this.clients.get(id)!
   }
 
-  addClient(ws: ServerWebSocket<{ id: string }>): void {
-    this.clients.set(ws.data.id, new Socket(ws, this))
-  }
-
   removeClient(id: string): void {
     this.clients.delete(id)
-  }
-
-  getChannel<T>(id: string | number): Channel<T> {
-    if (!this.channels.has(id)) {
-      throw new Error(`No no channel with id: ${id}`)
-    }
-    return this.channels.get(id)!
   }
 
   addChannel<T>(id: string | number, context: T): void {
@@ -68,15 +61,26 @@ export class IO {
     })
   }
 
+  getChannel<T>(id: string | number): Channel<T> {
+    if (!this.channels.has(id)) {
+      throw new Error(`No no channel with id: ${id}`)
+    }
+    return this.channels.get(id)!
+  }
+
   removeChannel(id: string | number): void {
     this.channels.delete(id)
   }
 
   join(channelId: string | number, socket: Socket): void {
     if (!this.channels.has(channelId)) {
-      this.addChannel(channelId, {})
+      this.addChannel(channelId, null)
     }
     this.channels.get(channelId)!.sockets.add(socket)
+  }
+
+  leave(channelId: string | number, socket: Socket): void {
+    this.getChannel(channelId).sockets.delete(socket)
   }
 
   broadcast(
@@ -116,17 +120,6 @@ function webSocketHandler(io: IO): WebSocketHandler<{ id: string }> {
   }
 }
 
-const io = new IO()
-
-io.on('connection', (socket) => {
-  socket.join('chat1')
-  socket.broadcast('chat1', 'message:send', 'Hello from server!')
-
-  socket.on('disconnect', () => {
-    console.log('Client disconnected', socket.id)
-  })
-})
-
 export class Socket {
   readonly id: string
   private io: IO
@@ -159,6 +152,10 @@ export class Socket {
 
   join(channelId: string | number): void {
     this.io.join(channelId, this)
+  }
+
+  leave(channelId: string | number): void {
+    this.io.leave(channelId, this)
   }
 
   broadcast(roomId: string | number, event: string, data: unknown): void {

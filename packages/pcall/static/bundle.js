@@ -52,143 +52,6 @@ function isLiteral(value) {
   return typeof value === "string" || typeof value === "number";
 }
 
-// packages/pcall/src/socket/socket-server.ts
-var webSocketHandler = function(io) {
-  return {
-    open(ws) {
-      io.addClient(ws);
-      io.trigger("connection", ws.data.id);
-    },
-    close(ws) {
-      io.getClient(ws.data.id).trigger("disconnect");
-      io.removeClient(ws.data.id);
-    },
-    message(ws, data) {
-      const socket = io.getClient(ws.data.id);
-      const message = JSON.parse(data);
-      const payload = parse(message);
-      socket.trigger(message.event, ...payload);
-    }
-  };
-};
-function parse(message) {
-  return message.payload.map((item) => {
-    if (!parser[item.type]) {
-      throw new Error(`Unknown type: ${item.type}`);
-    }
-    return parser[item.type](item.value);
-  });
-}
-
-class IO {
-  events = new Map;
-  clients = new Map;
-  channels = new Map;
-  on(event, handler) {
-    this.events.set(event, handler);
-  }
-  trigger(event, id) {
-    const handler = this.events.get(event);
-    if (!handler) {
-      throw new Error(`No handler for event: ${event}`);
-    }
-    handler(this.getClient(id));
-  }
-  emit(event, data) {
-    this.clients.forEach((socket) => socket.emit(event, data));
-  }
-  getClient(id) {
-    if (!this.clients.has(id)) {
-      throw new Error(`No client with id: ${id}`);
-    }
-    return this.clients.get(id);
-  }
-  addClient(ws) {
-    this.clients.set(ws.data.id, new Socket(ws, this));
-  }
-  removeClient(id) {
-    this.clients.delete(id);
-  }
-  getChannel(id) {
-    if (!this.channels.has(id)) {
-      throw new Error(`No no channel with id: ${id}`);
-    }
-    return this.channels.get(id);
-  }
-  addChannel(id, context) {
-    this.channels.set(id, {
-      sockets: new Set,
-      context
-    });
-  }
-  removeChannel(id) {
-    this.channels.delete(id);
-  }
-  join(channelId, socket) {
-    if (!this.channels.has(channelId)) {
-      this.addChannel(channelId, {});
-    }
-    this.channels.get(channelId).sockets.add(socket);
-  }
-  broadcast(channelId, event, data, socketId) {
-    this.getChannel(channelId).sockets.forEach((socket) => {
-      if (socket.id === socketId)
-        return;
-      socket.emit(event, data);
-    });
-  }
-  handler() {
-    return webSocketHandler(this);
-  }
-}
-var io = new IO;
-io.on("connection", (socket) => {
-  socket.join("chat1");
-  socket.broadcast("chat1", "message:send", "Hello from server!");
-  socket.on("disconnect", () => {
-    console.log("Client disconnected", socket.id);
-  });
-});
-
-class Socket {
-  id;
-  io;
-  ws;
-  events = new Map;
-  constructor(ws, io2) {
-    this.id = ws.data.id;
-    this.io = io2;
-    this.ws = ws;
-  }
-  on(event, handler) {
-    this.events.set(event, handler);
-  }
-  emit(event, ...payload) {
-    this.ws.send(JSON.stringify({ event, payload }));
-  }
-  trigger(event, ...data) {
-    const handler = this.events.get(event);
-    if (!handler) {
-      throw new Error(`No handler for event: ${event}`);
-    }
-    handler(...data);
-  }
-  join(channelId) {
-    this.io.join(channelId, this);
-  }
-  broadcast(roomId, event, data) {
-    this.io.broadcast(roomId, event, data, this.id);
-  }
-}
-var parser = {
-  object: JSON.parse,
-  literal: (val2) => val2,
-  function: (val) => eval(`(${val})`)
-};
-
-// packages/pcall/src/router.ts
-var io2 = new IO;
-
 // packages/pcall/src/rpc.ts
 class RPCRequest {
   id;
@@ -242,26 +105,6 @@ class RPCResponse {
     }
   }
 }
-// packages/pcall/src/adapters/bun.ts
-var io3 = new IO;
-io3.on("connection", (socket) => {
-  console.log("connected", socket.id);
-  console.log("clients", io3.clients.size);
-  socket.on("message", (data) => {
-    console.log("message", data);
-    socket.emit("message", "Hello, client!");
-  });
-  socket.on("disconnect", () => {
-    console.log("disconnected", socket.id);
-  });
-  socket.on("ping", () => "Pong!");
-  socket.on("test", (str, num, obj, fn) => {
-    console.log("test", str, num, obj, fn);
-    const what = fn(1, 2);
-    console.log("what", what);
-  });
-});
-
 // packages/pcall/src/server.ts
 var __dirname = "/Users/j0rdi/dev/cel/rpc/packages/pcall/src";
 var staticDir = `${__dirname}/../static`;
@@ -273,18 +116,16 @@ function createProxy(callback, path = []) {
       if (typeof key !== "string" || key === "then") {
         return;
       }
-      console.log("GET", key);
       return createProxy(callback, [...path, key]);
     },
     apply(_targ, _thisArg, args) {
       const isApply = path[path.length - 1] === "apply";
-      console.log("APPLY", path, args);
       return callback(isApply ? path.slice(0, -1) : path, isApply ? args.length >= 2 ? args[1] : [] : args);
     }
   });
 }
 // packages/pcall/src/socket/socket-client.ts
-var parse3 = function(values) {
+var parse2 = function(values) {
   return values.map((arg) => {
     if (isObj(arg)) {
       return { type: "object", value: JSON.stringify(arg) };
@@ -317,22 +158,22 @@ class SocketClient {
       this.events.get("disconnect")?.();
     };
     this.ws.onmessage = ({ data }) => {
-      const msg = JSON.parse(data);
-      const handler = this.events.get(msg.event);
+      const message = JSON.parse(data);
+      const handler = this.events.get(message.event);
       if (!handler) {
-        throw new Error(`Event ${msg.event} not found`);
+        throw new Error(`Event ${message.event} not found`);
       }
-      handler(...msg.payload);
+      handler(...message.payload);
     };
     this.ws.onerror = (err) => {
-      console.error("Error:", err);
+      console.error(err);
     };
   }
   emit(event, ...args) {
     if (!this.connected) {
       throw new Error("Socket is not open");
     }
-    const payload = parse3(args);
+    const payload = parse2(args);
     this.ws.send(JSON.stringify({ event, payload }));
   }
   on(event, callback) {
@@ -490,18 +331,65 @@ var logger = {
   error: (m, d) => log("down", m, d, "red")
 };
 // packages/pcall/static/main.ts
+var $ = function(selector) {
+  return document.querySelector(selector);
+};
+var updateUsers = function(users) {
+  $("#users").innerText = users.join(", ");
+};
+var addMessage = function(message) {
+  const isUser = message.userId === userId;
+  const $message = document.createElement("article");
+  $message.className = `chat ${isUser ? "chat-end" : "chat-start"}`;
+  $message.innerHTML = `
+    <div class="chat-header text-zinc-400">
+      ${message.userId}
+    </div>
+    <div class="chat-bubble text-black ${isUser ? "bg-green-200" : "bg-blue-200"}">
+      ${message.text}
+    </div>
+  `;
+  $("#messages").appendChild($message);
+};
 var api = client("http://localhost:8000/rpc");
 var ws = api.$ws();
+var userId = "";
 ws.on("connect", () => {
   console.log("Connected to server");
-  ws.emit("message", "Hello from client!");
-  ws.on("message", (data) => {
-    console.log("Message received", data);
-  });
 });
 ws.on("disconnect", () => {
   console.log("Disconnected from server");
+  ws.emit("chat:leave", userId);
 });
-document.querySelector("button").onclick = () => {
-  ws.emit("message", "Hello from client!");
-};
+ws.on("chat:joined", ({ userId: userId2, users, messages }) => {
+  console.log("User joined chat:", userId2);
+  updateUsers(users);
+  messages.forEach(addMessage);
+});
+ws.on("chat:join", ({ userId: userId2, users }) => {
+  console.log("User joined chat:", userId2);
+  updateUsers(users);
+});
+ws.on("chat:leave", (userId2) => {
+  console.log("User left chat:", userId2);
+});
+ws.on("message:receive", (data) => {
+  addMessage(data);
+});
+$("#login").addEventListener("submit", (e) => {
+  e.preventDefault();
+  userId = e.target?.username?.value?.trim();
+  if (!userId)
+    return;
+  ws.emit("chat:join", userId);
+});
+$("#chat").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const $form = e.target;
+  const text = $form?.message?.value?.trim();
+  if (!text)
+    return;
+  addMessage({ userId, text });
+  ws.emit("message:send", { userId, text });
+  $form.reset();
+});

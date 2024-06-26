@@ -2,10 +2,6 @@ import type { AnyFn } from '@/types'
 import { isFn, isLiteral, isObj } from '../util'
 import type { Message } from './socket-server'
 
-export function webSocket(url: string) {
-  return new SocketClient(url)
-}
-
 export class SocketClient {
   private ws: WebSocket
   private events: Map<string, AnyFn> = new Map()
@@ -29,18 +25,18 @@ export class SocketClient {
     }
 
     this.ws.onmessage = ({ data }) => {
-      const msg: Message = JSON.parse(data)
-      const handler = this.events.get(msg.event)
+      const message: Message = JSON.parse(data)
+      const handler = this.events.get(message.event)
 
       if (!handler) {
-        throw new Error(`Event ${msg.event} not found`)
+        throw new Error(`Event ${message.event} not found`)
       }
 
-      handler(...msg.payload)
+      handler(...message.payload)
     }
 
     this.ws.onerror = (err) => {
-      console.error('Error:', err)
+      console.error(err)
     }
   }
 
@@ -54,7 +50,7 @@ export class SocketClient {
 
   on(
     event: 'connect' | 'disconnect' | (string & {}),
-    callback: (data: unknown) => void,
+    callback: (data: any) => void,
   ) {
     this.events.set(event, callback)
   }
