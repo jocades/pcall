@@ -10,12 +10,16 @@ export default async function Home() {
   return (
     <main>
       <div>
-        SERVER
+        - SERVER
         <pre>{JSON.stringify(data, null, 2)}</pre>
       </div>
+      - CLIENT
       <Component />
+      - POSTS
       <Posts />
+      - POST FORM
       <PostForm />
+      - API CLIENT
       <Client />
     </main>
   )

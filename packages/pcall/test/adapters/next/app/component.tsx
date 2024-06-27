@@ -19,7 +19,6 @@ export function Component() {
 
   return (
     <div>
-      CLIENT
       <pre>{JSON.stringify(state, null, 2)}</pre>
     </div>
   )

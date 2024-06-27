@@ -1,6 +1,11 @@
 import type { Router } from '../router'
 import { fetchHandler, type ServeOptions } from '../server'
 
+export type NextOptions = Omit<
+  ServeOptions,
+  'port' | 'endpoint' | 'static' | 'websocket'
+>
+
 /**
  * @example
  * ```ts
@@ -20,9 +25,6 @@ import { fetchHandler, type ServeOptions } from '../server'
  * })
  *```
  */
-export function handle(
-  router: Router,
-  opts?: Omit<ServeOptions, 'port' | 'endpoint'>,
-) {
+export function handle(router: Router, opts?: NextOptions) {
   return fetchHandler(router, opts)
 }

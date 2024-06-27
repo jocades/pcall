@@ -5,7 +5,7 @@ import { fetchHandler, type ServeOptions } from '../server'
 export function handle(router: Router, opts?: ServeOptions) {
   return {
     port: opts?.port ?? 8000,
-    fetch: fetchHandler(router, opts),
+    fetch: fetchHandler(router, opts, true),
     websocket: opts?.websocket!,
   } satisfies Serve
 }

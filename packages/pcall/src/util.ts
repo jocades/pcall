@@ -12,6 +12,10 @@ export function isLiteral(value: unknown): value is string | number {
   return typeof value === 'string' || typeof value === 'number'
 }
 
+export function isDef<T>(value: T | undefined): value is T {
+  return value !== undefined
+}
+
 export function merge<
   T extends AnyObject | undefined,
   U extends AnyObject | undefined,
@@ -149,3 +153,11 @@ const c = {
 
 // const chain = pipe(add1, add2, add3)
 // chain(c)
+
+/* function what() {
+  return (() => {
+    return 'ok'
+  })()
+}
+
+console.log(what()) */

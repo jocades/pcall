@@ -2,18 +2,21 @@ import { type Router } from './router'
 import { handle } from './adapters/bun'
 import type { AnyObject, MaybePromise } from './types'
 import type { Server, WebSocketHandler } from 'bun'
-import { isFn } from './util'
 import { RPCRequest, RPCResponse } from './rpc'
-import { Context, X } from './http'
+import { Context, LinearRouter, _upgrade, type Handler } from './http'
+import { Env } from './_env'
+import { isDef } from './util'
 
 export interface ServeOptions {
   port?: number
   headers?: Record<string, string>
-  context?: AnyObject | ((req: Request) => MaybePromise<AnyObject>)
   endpoint?: string
   static?: StaticOptions
-  websocket?: WebSocketHandler
+  websocket?: WebSocketHandler<any>
+  context?: AnyObject | ((req: Request) => MaybePromise<AnyObject>)
   onError?: (err: Error) => MaybePromise<void>
+  notFound?: (c: Context) => MaybePromise<Response>
+  log?: boolean
 }
 
 interface StaticOptions {
@@ -33,45 +36,60 @@ export function serve(router: Router, opts?: ServeOptions): Server {
   return Bun.serve(handle(router, opts))
 }
 
-export function fetchHandler(router: Router, opts: ServeOptions = {}) {
-  const app = new X(opts)
+export function fetchHandler(
+  router: Router,
+  opts: ServeOptions = {},
+  standalone = false,
+) {
+  const app = new LinearRouter(opts)
+  const { endpoint = '/rpc' } = opts
 
-  app.get(
-    '/test',
-    async (c, next) => {
-      console.log('mw1', c.req.url.pathname)
-      await next()
-      console.log('mw1 done')
-    },
-    async (c) => {
-      console.log('mw2')
-      return c.text('Hello, World!')
-    },
-  )
+  if (standalone) {
+    if (opts.log || (!isDef(opts.log) && Env.DEV)) {
+      app.use(logger())
+    }
 
-  app.options('*', (c) => c.send())
-
-  if (opts.static) {
     app.get(
-      '*',
-      serveStatic(
-        opts.static?.dir ?? 'static',
-        opts.static?.fallback ?? 'index.html',
-      ),
+      '/test',
+      async (c, next) => {
+        console.log('mw1', c.env)
+        await next()
+        console.log('mw1 done')
+      },
+      async (c) => {
+        console.log('mw2')
+        return c.text('Hello, World!')
+      },
     )
+
+    app.options('*', (c) => c.send())
+
+    if (opts.static) {
+      app.get(
+        '*',
+        serveStatic(
+          opts.static?.dir ?? 'static',
+          opts.static?.fallback ?? 'index.html',
+        ),
+      )
+    }
+
+    app.get(`${endpoint}/ws`, upgradeWebSocket())
+
+    app.get(`${endpoint}/test-error`, () => {
+      throw new Error('Test error')
+    })
   }
 
+  // RPC Interface
   const handle = router.init()
-  const { context, endpoint = '/rpc' } = opts
 
-  app.post(endpoint, async (c) => {
-    const env = isFn(context) ? await context(c.req._req) : context
-
+  app.post(standalone ? endpoint : '*', async (c) => {
     if (c.req.url.searchParams.has('batch')) {
       const requests = await RPCRequest.from<[]>(c.req)
       const responses = await Promise.all(
         requests.map(async (req) => {
-          return handle(req, env)
+          return handle(req, c.env)
             .then((result) => new RPCResponse(req.id, result))
             .catch((err) => RPCResponse.error(req.id, err))
         }),
@@ -81,24 +99,42 @@ export function fetchHandler(router: Router, opts: ServeOptions = {}) {
     }
 
     const request = await RPCRequest.from(c.req)
-    const response = await handle(request, env)
+    const response = await handle(request, c.env)
       .then((result) => new RPCResponse(request.id, result))
       .catch((err) => RPCResponse.error(request.id, err))
 
     return c.json(response)
   })
 
-  app.get(`${endpoint}/ws`, upgradeWebSocket())
-
-  app.get(`${endpoint}/test-error`, () => {
-    throw new Error('Test error')
-  })
-
-  return app.fetch()
+  return app.fetch
 }
 
-function serveStatic(dir: string, fallback: string) {
-  return async (c: Context) => {
+function logger(
+  opts: {
+    in?: (c: Context) => string
+    out?: (c: Context, elapsed: number) => string
+    logIncoming?: boolean
+  } = {},
+): Handler {
+  return async (c, next) => {
+    const start = performance.now()
+    if (opts.logIncoming || !isDef(opts.logIncoming)) {
+      console.log(
+        opts.in ? opts.in(c) : `-> ${c.req.method} ${c.req.url.pathname}`,
+      )
+    }
+    await next()
+    const elapsed = (performance.now() - start).toFixed(3)
+    console.log(
+      opts.out
+        ? opts.out(c, Number(elapsed))
+        : `<- ${c.req.method} ${c.req.url.pathname} | ${c._status} | ${elapsed}ms`,
+    )
+  }
+}
+
+function serveStatic(dir: string, fallback: string): Handler {
+  return async (c) => {
     const path = `${dir}${c.req.url.pathname === '/' ? '/index.html' : c.req.url.pathname}`
     const file = (await Bun.file(path).exists())
       ? Bun.file(path)
@@ -109,9 +145,9 @@ function serveStatic(dir: string, fallback: string) {
   }
 }
 
-function upgradeWebSocket() {
-  return (c: Context) => {
-    if (c.upgrade()) {
+function upgradeWebSocket(): Handler {
+  return (c) => {
+    if (c[_upgrade]()) {
       return undefined as unknown as Response
     }
     c.status(500)
