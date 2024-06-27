@@ -9,7 +9,7 @@
     "build:min": "NODE_ENV=production bun run build.ts"
   },
   "devDependencies": {
-    "@types/bun": "latest",
+    "@types/bun": "1.1.5",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "zod-to-json-schema": "^3.23.0"

@@ -1,7 +1,6 @@
 import { router } from './router'
-import { Builder, parse } from './procedure'
+import { Builder } from './procedure'
 import { RPCError, error } from './error'
-import { z } from 'zod'
 
 /**
  * @module RPC

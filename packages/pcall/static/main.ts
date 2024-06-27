@@ -1,8 +1,15 @@
 import { client } from '..'
 import { type AppRouter } from '../test/mock'
 
-const api = client<AppRouter>('http://localhost:8000/rpc')
+function $<T extends Element>(selector: string) {
+  return document.querySelector<T>(selector)!
+}
 
+// forms
+const $login = $<HTMLFormElement>('#login')
+const $chat = $<HTMLFormElement>('#chat')
+
+const api = client<AppRouter>('http://localhost:8000/rpc')
 const ws = api.$ws()
 
 let userId = ''
@@ -19,8 +26,10 @@ ws.on('disconnect', () => {
 // for single user when first joining chat
 ws.on('chat:joined', ({ userId, users, messages }) => {
   console.log('User joined chat:', userId)
+
   updateUsers(users)
   messages.forEach(addMessage)
+  $login.classList.add('hidden')
 })
 
 // for all users when a new user joins chat
@@ -36,10 +45,6 @@ ws.on('chat:leave', (userId: string) => {
 ws.on('message:receive', (data: { userId: string; text: string }) => {
   addMessage(data)
 })
-
-function $<T extends Element>(selector: string) {
-  return document.querySelector<T>(selector)!
-}
 
 function updateUsers(users: string[]) {
   $<HTMLParagraphElement>('#users').innerText = users.join(', ')
@@ -63,14 +68,14 @@ function addMessage(message: { userId: string; text: string }) {
   $('#messages').appendChild($message)
 }
 
-$<HTMLFormElement>('#login').addEventListener('submit', (e) => {
+$login.addEventListener('submit', (e) => {
   e.preventDefault()
   userId = (e.target as HTMLFormElement)?.username?.value?.trim()
   if (!userId) return
   ws.emit('chat:join', userId)
 })
 
-$<HTMLFormElement>('#chat').addEventListener('submit', (e) => {
+$chat.addEventListener('submit', (e) => {
   e.preventDefault()
   const $form = e.target as HTMLFormElement
   const text = $form?.message?.value?.trim()

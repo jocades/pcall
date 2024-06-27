@@ -89,8 +89,6 @@ const chat = new Chat()
 
 const io = new IO()
 
-console.log(chat.messages[0].timestamp.toLocaleString())
-
 io.on('connection', (socket) => {
   console.log('Client connected', socket.id)
 
@@ -135,6 +133,42 @@ io.on('connection', (socket) => {
   })
 })
 
+const staticDir = `${__dirname}/../static`
+
+function openStatic(file: string) {
+  return Bun.file(`${staticDir}/${file}`).text()
+}
+
+function open(file: string) {
+  return Bun.file(`${__dirname}/${file}`).text()
+}
+
+const FALLBACK = 'index.html'
+
+async function serveStatic(url: URL, dir: string, fallback: string) {
+  const path = `${dir}${url.pathname}`
+  const file = (await Bun.file(path).exists())
+    ? Bun.file(path)
+    : Bun.file(`${dir}/${fallback}`)
+  console.log('SERVING', file)
+  return new Response(file, { headers: { 'content-type': file.type } })
+}
+
+async function build() {
+  const result = await Bun.build({
+    entrypoints: [`${staticDir}/main.ts`],
+    outdir: staticDir,
+    naming: `[dir]/bundle.[ext]`,
+  })
+
+  if (!result.success) {
+    for (const message of result.logs) {
+      console.error(message)
+    }
+    throw new Error('Build failed')
+  }
+}
+
 const server = serve(app, {
   port: 8000,
   context(req) {
@@ -145,6 +179,29 @@ const server = serve(app, {
   onError(err) {
     console.log('Catched error:', err.message)
   },
+  static: {
+    dir: `${__dirname}/../static`,
+    fallback: 'not-found.html',
+  },
+  // async fetch(_req, url) {
+  //   return await serveStatic(url, staticDir, 'index.html')
+
+  /* if (url.pathname === '/') {
+      return new Response(await openStatic('index.html'), {
+        headers: { 'content-type': 'text/html' },
+      })
+    }
+
+    if (url.pathname === '/bundle.js') {
+      // await build()
+      const file = await openStatic('bundle.js')
+      return new Response(file, {
+        headers: { 'content-type': 'application/javascript' },
+      })
+    }
+
+    return new Response('Not found', { status: 404 }) */
+  // },
   websocket: io.handler(),
 })
 

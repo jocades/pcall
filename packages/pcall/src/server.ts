@@ -12,22 +12,35 @@ export interface ServeOptions<T = unknown> {
   headers?: HeadersInit
   context?: AnyObject | ((req: Request) => MaybePromise<AnyObject>)
   endpoint?: string
+  static?: StaticOptions
   websocket?: WebSocketHandler<T>
   onError?: (err: Error) => MaybePromise<void>
+}
+
+interface StaticOptions {
+  /**
+   * Directory to serve static files from.
+   * @default 'static'
+   */
+  dir?: string
+  /**
+   * Fallback file to serve when the requested file is not found.
+   * @default 'index.html'
+   */
+  fallback?: string
 }
 
 export function serve<T>(router: Router, opts?: ServeOptions<T>): Server {
   return Bun.serve(handle(router, opts))
 }
 
-function open(file: string) {
-  return Bun.file(`${__dirname}/${file}`).text()
-}
+async function serveStatic(url: URL, dir: string, fallback: string) {
+  const path = `${dir}${url.pathname === '/' ? '/index.html' : url.pathname}`
+  const file = (await Bun.file(path).exists())
+    ? Bun.file(path)
+    : Bun.file(`${dir}/${fallback}`)
 
-const staticDir = `${__dirname}/../static`
-
-function openStatic(file: string) {
-  return Bun.file(`${staticDir}/${file}`).text()
+  return new Response(file, { headers: { 'content-type': file.type } })
 }
 
 export function fetchHandler<T>(router: Router, opts: ServeOptions<T> = {}) {
@@ -35,6 +48,8 @@ export function fetchHandler<T>(router: Router, opts: ServeOptions<T> = {}) {
   const ctxIsFn = isFn(context)
 
   const handle = router.init()
+
+  let wsID = 1
 
   return async (req: Request, server: Server): Promise<Response> => {
     const url = new URL(req.url)
@@ -44,44 +59,28 @@ export function fetchHandler<T>(router: Router, opts: ServeOptions<T> = {}) {
       return new Response(null, { headers })
     }
 
-    // for now just use an endpoint and handle the socket events in the client side
-    // with the typical socket.on('event', cb) pattern.
-    // but maybe use a router endpoint to be a socket event handler like:
-    // users.onUpdate: pc().subscribe((emit) => {
-    //   emit(someData)
-    // })
-    // just have ONE connection per client.
-    // if it hits and websocket event endpoint just check if the client is already connected
-    // and if not upgrade the connection and close it when there are no more events to listen to.
     if (url.pathname === `${endpoint}/ws`) {
-      if (server.upgrade(req, { data: { id: crypto.randomUUID() } })) {
+      if (server.upgrade(req, { data: { id: wsID++ } })) {
         // @ts-ignore
         return
       }
       return new Response('Upgrade failed', { status: 500 })
     }
 
-    if (url.pathname === '/') {
-      return new Response(await openStatic('index.html'), {
-        headers: { 'content-type': 'text/html' },
-      })
-    }
+    if (url.pathname !== endpoint) {
+      if (opts.static) {
+        const dir = opts.static.dir ?? 'static'
+        const fallback = opts.static.fallback ?? 'index.html'
 
-    if (url.pathname === '/bundle.js') {
-      await build()
-      const file = await openStatic('bundle.js')
-      return new Response(file, {
-        headers: { 'content-type': 'application/javascript' },
-      })
+        return await serveStatic(url, dir, fallback)
+      }
+
+      return new Response('Not Found', { status: 404 })
     }
 
     try {
       if (url.pathname === `${endpoint}/test-error`) {
         throw new Error('Test error')
-      }
-
-      if (url.pathname !== endpoint) {
-        return new Response('Not Found', { status: 404 })
       }
 
       if (req.method !== 'POST') {
@@ -142,21 +141,6 @@ function logger(req: Request, url: URL) {
   return () => {
     const elapsed = (performance.now() - start).toFixed(3)
     console.log(`<- ${req.method} ${url.pathname} - ${elapsed}ms`)
-  }
-}
-
-async function build() {
-  const result = await Bun.build({
-    entrypoints: [`${staticDir}/main.ts`],
-    outdir: staticDir,
-    naming: `[dir]/bundle.[ext]`,
-  })
-
-  if (!result.success) {
-    console.error('Build failed')
-    for (const message of result.logs) {
-      console.error(message)
-    }
   }
 }
 

@@ -17,9 +17,10 @@
     }
   },
   "devDependencies": {
-    "@types/bun": "latest",
+    "@types/bun": "1.1.5",
     "zod": "^3.0.0",
-    "hono": "^4.4.4"
+    "hono": "^4.4.4",
+    "what": "workspace:*"
   },
   "peerDependencies": {
     "typescript": "^5.0.0",

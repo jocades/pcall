@@ -52,6 +52,12 @@ function isLiteral(value) {
   return typeof value === "string" || typeof value === "number";
 }
 
+// packages/pcall/src/procedure.ts
+var $procedure = Symbol("procedure");
+
+// packages/pcall/src/router.ts
+var $router = Symbol("router");
+
 // packages/pcall/src/rpc.ts
 class RPCRequest {
   id;
@@ -105,9 +111,6 @@ class RPCResponse {
     }
   }
 }
-// packages/pcall/src/server.ts
-var __dirname = "/Users/j0rdi/dev/cel/rpc/packages/pcall/src";
-var staticDir = `${__dirname}/../static`;
 // packages/pcall/src/proxy.ts
 function createProxy(callback, path = []) {
   return new Proxy(() => {
@@ -125,7 +128,7 @@ function createProxy(callback, path = []) {
   });
 }
 // packages/pcall/src/socket/socket-client.ts
-var parse2 = function(values) {
+var parse = function(values) {
   return values.map((arg) => {
     if (isObj(arg)) {
       return { type: "object", value: JSON.stringify(arg) };
@@ -173,7 +176,7 @@ class SocketClient {
     if (!this.connected) {
       throw new Error("Socket is not open");
     }
-    const payload = parse2(args);
+    const payload = parse(args);
     this.ws.send(JSON.stringify({ event, payload }));
   }
   on(event, callback) {
@@ -351,6 +354,8 @@ var addMessage = function(message) {
   `;
   $("#messages").appendChild($message);
 };
+var $login = $("#login");
+var $chat = $("#chat");
 var api = client("http://localhost:8000/rpc");
 var ws = api.$ws();
 var userId = "";
@@ -365,6 +370,7 @@ ws.on("chat:joined", ({ userId: userId2, users, messages }) => {
   console.log("User joined chat:", userId2);
   updateUsers(users);
   messages.forEach(addMessage);
+  $login.classList.add("hidden");
 });
 ws.on("chat:join", ({ userId: userId2, users }) => {
   console.log("User joined chat:", userId2);
@@ -376,14 +382,14 @@ ws.on("chat:leave", (userId2) => {
 ws.on("message:receive", (data) => {
   addMessage(data);
 });
-$("#login").addEventListener("submit", (e) => {
+$login.addEventListener("submit", (e) => {
   e.preventDefault();
   userId = e.target?.username?.value?.trim();
   if (!userId)
     return;
   ws.emit("chat:join", userId);
 });
-$("#chat").addEventListener("submit", (e) => {
+$chat.addEventListener("submit", (e) => {
   e.preventDefault();
   const $form = e.target;
   const text = $form?.message?.value?.trim();

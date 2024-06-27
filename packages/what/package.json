@@ -1,0 +1,18 @@
+{
+  "name": "what",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "1.1.5"
+  },
+  "exports": {
+    "./jsx": {
+      "default": "./jsx.ts"
+    }
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@vue/reactivity": "^3.4.30"
+  }
+}
