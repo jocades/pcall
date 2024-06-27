@@ -53,11 +53,18 @@ export function fetchHandler(
       '/test',
       async (c, next) => {
         console.log('mw1', c.env)
+        c.env.mw1 = 1
         await next()
         console.log('mw1 done')
       },
+      async (c, next) => {
+        console.log('mw2', c.env)
+        c.env.mw2 = 2
+        await next()
+        console.log('mw2 done')
+      },
       async (c) => {
-        console.log('mw2')
+        console.log('mw3', c.env)
         return c.text('Hello, World!')
       },
     )

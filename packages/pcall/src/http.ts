@@ -3,11 +3,11 @@ import type { AnyObject, MaybePromise } from './types'
 import type { ServeOptions } from './server'
 import { RPCError } from './error'
 import { RPCResponse } from './rpc'
-import { isFn } from './util'
+import { isFn, merge } from './util'
 
 export const _upgrade = Symbol('upgrade')
 
-export const _server = Symbol('server')
+type Headers = Record<string, string>
 
 export class Context<T extends AnyObject = AnyObject> {
   req: XRequest
@@ -15,13 +15,13 @@ export class Context<T extends AnyObject = AnyObject> {
   _status = 200
   statusText?: string
   env: T
-  headers: Record<string, string>
+  headers: Headers
 
   constructor(
     req: Request,
     server?: Server,
     env: T = {} as T,
-    headers: Record<string, string> = {},
+    headers: Headers = {},
   ) {
     this.req = new XRequest(req)
     this.#server = server
@@ -38,35 +38,35 @@ export class Context<T extends AnyObject = AnyObject> {
     this.headers[key] = value
   }
 
-  send() {
-    return new Response(null, this.opts)
+  send(status?: number, headers?: Headers) {
+    return new Response(null, this.opts(status, headers))
   }
 
-  json(data: unknown) {
-    return Response.json(data, this.opts)
+  json(data: unknown, status?: number, headers?: Headers) {
+    return Response.json(data, this.opts(status, headers))
   }
 
-  text(data: string) {
+  text(data: string, status?: number, headers?: Headers) {
     this.header('content-type', 'text/plain')
-    return new Response(data, this.opts)
+    return new Response(data, this.opts(status, headers))
   }
 
-  html(data: string) {
+  html(data: string, status?: number, headers?: Headers) {
     this.header('content-type', 'text/html')
-    return new Response(data, this.opts)
+    return new Response(data, this.opts(status, headers))
   }
 
-  file(file: string | BunFile) {
+  file(file: string | BunFile, status?: number, headers?: Headers) {
     file = typeof file === 'string' ? Bun.file(file) : file
     this.header('content-type', file.type)
-    return new Response(file, this.opts)
+    return new Response(file, this.opts(status, headers))
   }
 
-  private get opts(): ResponseInit {
+  private opts(status?: number, headers?: Headers): ResponseInit {
     return {
-      status: this._status,
+      status: status ?? this._status,
       statusText: this.statusText,
-      headers: this.headers,
+      headers: merge(this.headers, headers),
     }
   }
 
@@ -124,9 +124,9 @@ class LinearRouterBase {
   delete!: H
   options!: H
   patch!: H
-  private opts: ServeOptions
-  private middleware: Handler[] = []
-  private routes: Record<HTTP_METHOD, Record<string, Handler[]>> = {
+  #opts: ServeOptions
+  #middleware: Handler[] = []
+  #routes: Record<HTTP_METHOD, Record<string, Handler[]>> = {
     GET: {},
     POST: {},
     PUT: {},
@@ -136,7 +136,7 @@ class LinearRouterBase {
   }
 
   constructor(opts: ServeOptions) {
-    this.opts = opts
+    this.#opts = opts
 
     HTTP_METHODS.forEach((method) => {
       this[method.toLowerCase() as Lowercase<HTTP_METHOD>] = (
@@ -150,11 +150,11 @@ class LinearRouterBase {
   }
 
   private addRoute(method: HTTP_METHOD, path: string, handlers: Handler[]) {
-    this.routes[method][path] = handlers
+    this.#routes[method][path] = handlers
   }
 
   use(...handlers: Handler[]) {
-    this.middleware.push(...handlers)
+    this.#middleware.push(...handlers)
     return this
   }
 
@@ -166,34 +166,34 @@ class LinearRouterBase {
   }
 
   notFound(handler: (c: Context) => MaybePromise<Response>) {
-    this.opts.notFound = handler
+    this.#opts.notFound = handler
     return this
   }
 
   // use arrow function to not inherit 'this'
   fetch = async (req: Request, server?: Server) => {
-    const { context } = this.opts
+    const { context } = this.#opts
     const env = isFn(context) ? await context(req) : context
-    const c = new Context(req, server, env, this.opts.headers)
+    const c = new Context(req, server, env, this.#opts.headers)
 
     try {
       const method = req.method as HTTP_METHOD
       const path = c.req.url.pathname
 
-      const handlers = this.routes[method][path] ?? this.routes[method]['*']
+      const handlers = this.#routes[method][path] ?? this.#routes[method]['*']
 
       if (!handlers) {
-        if (this.opts.notFound) {
-          return this.opts.notFound(c)
+        if (this.#opts.notFound) {
+          return this.#opts.notFound(c)
         }
         c.status(404)
         return c.text('Not Found')
       }
 
-      return pipe(this.middleware.concat(handlers))(c)
+      return pipe(this.#middleware.concat(handlers))(c)
     } catch (err: any) {
-      if (this.opts.onError) {
-        await this.opts.onError(err)
+      if (this.#opts.onError) {
+        await this.#opts.onError(err)
       } else {
         console.error(err)
       }
@@ -256,3 +256,58 @@ export class XRequest {
     return this.raw.method
   }
 }
+
+// try to add 'params' to the path
+class Node {
+  regex: RegExp
+  params: string[]
+  handlers: Handler[]
+
+  constructor(path: string, handlers: Handler[]) {
+    const { regex, params } = parsePath(path)
+    this.regex = regex
+    this.params = params
+    this.handlers = handlers
+  }
+}
+
+const node = new Node('/users/:id', [(c: Context) => c.text('Hello World')])
+
+const routes: Record<HTTP_METHOD, Node[]> = {
+  GET: [node],
+  POST: [],
+  PUT: [],
+  DELETE: [],
+  OPTIONS: [],
+  PATCH: [],
+}
+
+// use regex to parse the path
+function parsePath(path: string) {
+  const params: string[] = []
+  const regex = path.replace(/\/:([^/]+)/g, (_, p) => {
+    params.push(p)
+    return '/([^/]+)'
+  })
+
+  return { regex: new RegExp(`^${regex}$`), params }
+}
+
+function match(method: HTTP_METHOD, path: string) {
+  for (const route of routes[method]) {
+    const match = path.match(route.regex)
+    console.log(match)
+    if (!match) {
+      return { handlers: null, params: {} }
+    }
+
+    const params = Object.fromEntries(
+      route.params.map((param, i) => [param, match[i + 1]]),
+    )
+
+    return { handlers: route.handlers, params }
+  }
+}
+
+const x = match('GET', 'users/1')
+console.log(x)
