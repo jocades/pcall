@@ -3,17 +3,16 @@ import { handle } from './adapters/bun'
 import type { AnyObject, MaybePromise } from './types'
 import type { Server, WebSocketHandler } from 'bun'
 import { isFn } from './util'
-import { Env } from './_env'
-import { RPCError } from './error'
 import { RPCRequest, RPCResponse } from './rpc'
+import { Context, X } from './http'
 
-export interface ServeOptions<T = unknown> {
+export interface ServeOptions {
   port?: number
-  headers?: HeadersInit
+  headers?: Record<string, string>
   context?: AnyObject | ((req: Request) => MaybePromise<AnyObject>)
   endpoint?: string
   static?: StaticOptions
-  websocket?: WebSocketHandler<T>
+  websocket?: WebSocketHandler
   onError?: (err: Error) => MaybePromise<void>
 }
 
@@ -30,117 +29,93 @@ interface StaticOptions {
   fallback?: string
 }
 
-export function serve<T>(router: Router, opts?: ServeOptions<T>): Server {
+export function serve(router: Router, opts?: ServeOptions): Server {
   return Bun.serve(handle(router, opts))
 }
 
-async function serveStatic(url: URL, dir: string, fallback: string) {
-  const path = `${dir}${url.pathname === '/' ? '/index.html' : url.pathname}`
-  const file = (await Bun.file(path).exists())
-    ? Bun.file(path)
-    : Bun.file(`${dir}/${fallback}`)
+export function fetchHandler(router: Router, opts: ServeOptions = {}) {
+  const app = new X(opts)
 
-  return new Response(file, { headers: { 'content-type': file.type } })
-}
+  app.get(
+    '/test',
+    async (c, next) => {
+      console.log('mw1', c.req.url.pathname)
+      await next()
+      console.log('mw1 done')
+    },
+    async (c) => {
+      console.log('mw2')
+      return c.text('Hello, World!')
+    },
+  )
 
-export function fetchHandler<T>(router: Router, opts: ServeOptions<T> = {}) {
-  const { headers, context, endpoint = '/rpc' } = opts
-  const ctxIsFn = isFn(context)
+  app.options('*', (c) => c.send())
+
+  if (opts.static) {
+    app.get(
+      '*',
+      serveStatic(
+        opts.static?.dir ?? 'static',
+        opts.static?.fallback ?? 'index.html',
+      ),
+    )
+  }
 
   const handle = router.init()
+  const { context, endpoint = '/rpc' } = opts
 
-  let wsID = 1
+  app.post(endpoint, async (c) => {
+    const env = isFn(context) ? await context(c.req._req) : context
 
-  return async (req: Request, server: Server): Promise<Response> => {
-    const url = new URL(req.url)
-    const time = logger(req, url)
+    if (c.req.url.searchParams.has('batch')) {
+      const requests = await RPCRequest.from<[]>(c.req)
+      const responses = await Promise.all(
+        requests.map(async (req) => {
+          return handle(req, env)
+            .then((result) => new RPCResponse(req.id, result))
+            .catch((err) => RPCResponse.error(req.id, err))
+        }),
+      )
 
-    if (req.method === 'OPTIONS') {
-      return new Response(null, { headers })
+      return c.json(responses)
     }
 
-    if (url.pathname === `${endpoint}/ws`) {
-      if (server.upgrade(req, { data: { id: wsID++ } })) {
-        // @ts-ignore
-        return
-      }
-      return new Response('Upgrade failed', { status: 500 })
-    }
+    const request = await RPCRequest.from(c.req)
+    const response = await handle(request, env)
+      .then((result) => new RPCResponse(request.id, result))
+      .catch((err) => RPCResponse.error(request.id, err))
 
-    if (url.pathname !== endpoint) {
-      if (opts.static) {
-        const dir = opts.static.dir ?? 'static'
-        const fallback = opts.static.fallback ?? 'index.html'
+    return c.json(response)
+  })
 
-        return await serveStatic(url, dir, fallback)
-      }
+  app.get(`${endpoint}/ws`, upgradeWebSocket())
 
-      return new Response('Not Found', { status: 404 })
-    }
+  app.get(`${endpoint}/test-error`, () => {
+    throw new Error('Test error')
+  })
 
-    try {
-      if (url.pathname === `${endpoint}/test-error`) {
-        throw new Error('Test error')
-      }
+  return app.fetch()
+}
 
-      if (req.method !== 'POST') {
-        return new Response('Method not allowed', { status: 405 })
-      }
+function serveStatic(dir: string, fallback: string) {
+  return async (c: Context) => {
+    const path = `${dir}${c.req.url.pathname === '/' ? '/index.html' : c.req.url.pathname}`
+    const file = (await Bun.file(path).exists())
+      ? Bun.file(path)
+      : Bun.file(`${dir}/${fallback}`)
 
-      const env = ctxIsFn ? await context(req) : context
-
-      if (url.searchParams.has('batch')) {
-        const requests = await RPCRequest.from<[]>(req)
-
-        console.log(requests.length, 'requests')
-
-        const responses = await Promise.all(
-          requests.map(async (req) => {
-            return handle(req, env)
-              .then((result) => new RPCResponse(req.id, result))
-              .catch((err) => RPCResponse.error(req.id, err))
-          }),
-        )
-
-        return Response.json(responses, { headers })
-      }
-
-      const request = await RPCRequest.from(req)
-
-      const response = await handle(request, env)
-        .then((result) => new RPCResponse(request.id, result))
-        .catch((err) => RPCResponse.error(request.id, err))
-
-      /* if (Env.DEBUG) {
-        console.log(request)
-        console.log(response)
-      } */
-
-      return Response.json(response, { headers })
-    } catch (err: any) {
-      if (opts.onError) {
-        await opts.onError(err)
-      } else {
-        console.error(err)
-      }
-
-      if (err instanceof RPCError) {
-        return RPCResponse.send(-1, undefined, err)
-      }
-
-      return new Response('Internal Server Error', { status: 500 })
-    } finally {
-      time()
-    }
+    c.header('content-type', file.type)
+    return c.file(file)
   }
 }
 
-function logger(req: Request, url: URL) {
-  const start = performance.now()
-  console.log(`-> ${req.method} ${url.pathname}`)
-  return () => {
-    const elapsed = (performance.now() - start).toFixed(3)
-    console.log(`<- ${req.method} ${url.pathname} - ${elapsed}ms`)
+function upgradeWebSocket() {
+  return (c: Context) => {
+    if (c.upgrade()) {
+      return undefined as unknown as Response
+    }
+    c.status(500)
+    return c.text('Upgrade failed')
   }
 }
 
@@ -158,7 +133,7 @@ export interface CorsOptions {
   headers?: string[]
 }
 
-export function cors(opts: CorsOptions = {}): HeadersInit {
+export function cors(opts: CorsOptions = {}): Record<string, string> {
   return {
     'Access-Control-Allow-Origin': opts.origins?.join(', ') ?? '*',
     'Access-Control-Allow-Methods':

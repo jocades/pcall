@@ -45,10 +45,6 @@ export class RPCResponse {
     this.error = error
   }
 
-  static send(id: number, result: unknown, error?: RPCError) {
-    return Response.json(new RPCResponse(id, result, error))
-  }
-
   /**
    * Check for an RPCError.
    * @throws If the error does not match.

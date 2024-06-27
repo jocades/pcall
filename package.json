@@ -3,7 +3,7 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "dev": "bun --watch packages/pcall/test/server.test.ts",
+    "dev": "NODE_ENV=development bun --watch packages/pcall/test/server.test.ts",
     "dev:next": "bun --cwd packages/pcall/test/adapters/next dev",
     "sub": "bun --cwd apps/sub dev",
     "check": "tsc",

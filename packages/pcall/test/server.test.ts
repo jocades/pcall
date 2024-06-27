@@ -1,4 +1,4 @@
-import { serve } from '@/server'
+import { cors, serve } from '@/server'
 import { app } from './mock'
 import { IO } from '@/socket/socket-server'
 import { Database } from 'bun:sqlite'
@@ -90,13 +90,14 @@ const chat = new Chat()
 const io = new IO()
 
 io.on('connection', (socket) => {
-  console.log('Client connected', socket.id)
+  console.log('Client connected', { id: socket.id })
+  console.log('Clients:', io.clients.size)
 
   socket.on('disconnect', () => {
     console.log('Client disconnected', socket.id)
-    socket.leave(chat.id)
-    chat.removeUser(socket.id)
-    io.broadcast(chat.id, 'chat:leave', socket.id)
+    // socket.leave(chat.id)
+    // chat.removeUser(socket.id)
+    // io.broadcast(chat.id, 'chat:leave', socket.id)
   })
 
   socket.on('chat:join', (userId: string) => {
@@ -135,26 +136,8 @@ io.on('connection', (socket) => {
 
 const staticDir = `${__dirname}/../static`
 
-function openStatic(file: string) {
-  return Bun.file(`${staticDir}/${file}`).text()
-}
-
-function open(file: string) {
-  return Bun.file(`${__dirname}/${file}`).text()
-}
-
-const FALLBACK = 'index.html'
-
-async function serveStatic(url: URL, dir: string, fallback: string) {
-  const path = `${dir}${url.pathname}`
-  const file = (await Bun.file(path).exists())
-    ? Bun.file(path)
-    : Bun.file(`${dir}/${fallback}`)
-  console.log('SERVING', file)
-  return new Response(file, { headers: { 'content-type': file.type } })
-}
-
 async function build() {
+  console.log('Building...')
   const result = await Bun.build({
     entrypoints: [`${staticDir}/main.ts`],
     outdir: staticDir,
@@ -177,31 +160,12 @@ const server = serve(app, {
     }
   },
   onError(err) {
-    console.log('Catched error:', err.message)
+    console.log('onError()', err.message)
   },
   static: {
     dir: `${__dirname}/../static`,
     fallback: 'not-found.html',
   },
-  // async fetch(_req, url) {
-  //   return await serveStatic(url, staticDir, 'index.html')
-
-  /* if (url.pathname === '/') {
-      return new Response(await openStatic('index.html'), {
-        headers: { 'content-type': 'text/html' },
-      })
-    }
-
-    if (url.pathname === '/bundle.js') {
-      // await build()
-      const file = await openStatic('bundle.js')
-      return new Response(file, {
-        headers: { 'content-type': 'application/javascript' },
-      })
-    }
-
-    return new Response('Not found', { status: 404 }) */
-  // },
   websocket: io.handler(),
 })
 

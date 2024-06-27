@@ -158,8 +158,8 @@ export class Socket {
     this.io.leave(channelId, this)
   }
 
-  broadcast(roomId: string | number, event: string, data: unknown): void {
-    this.io.broadcast(roomId, event, data, this.id)
+  broadcast(channelId: string | number, event: string, data: unknown): void {
+    this.io.broadcast(channelId, event, data, this.id)
   }
 }
 
