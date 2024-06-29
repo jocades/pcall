@@ -1,4 +1,4 @@
-import { IO } from '@/socket/socket-server'
+import { SocketServer } from '@/ws/server'
 import { Database } from 'bun:sqlite'
 
 class Message {
@@ -23,7 +23,7 @@ const createTable = db.query(
     userId TEXT NOT NULL,
     text TEXT NOT NULL,
     _timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
-  )`,
+  )`
 )
 
 createTable.run()
@@ -32,7 +32,7 @@ const q = {
   dropTable: db.query(`DROP TABLE IF EXISTS message`),
 
   insertMessage: db.query(
-    `INSERT INTO message (userId, text) VALUES ($userId, $text)`,
+    `INSERT INTO message (userId, text) VALUES ($userId, $text)`
   ),
 
   getMessages: db.query(`SELECT * FROM message`).as(Message),
@@ -85,7 +85,7 @@ class Chat {
 
 const chat = new Chat()
 
-const io = new IO()
+const io = new SocketServer()
 
 io.on('connection', (socket) => {
   console.log('Client connected', { id: socket.id })

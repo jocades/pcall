@@ -1,5 +1,3 @@
-import { effect, ref, isRef, unref } from '@vue/reactivity'
-
 type Tag = keyof HTMLElementTagNameMap | 'text' | 'fragment'
 
 type PropsIn = Record<string, any> & { children?: any[] }
@@ -40,8 +38,8 @@ export class VNode {
 
       if (typeof child === 'string' || typeof child === 'number') {
         children.push(new VNode('text', { value: child }))
-      } else if (isRef(child)) {
-        children.push(new VNode('text', { value: unref(child) }))
+        /* } else if (isRef(child)) {
+        children.push(new VNode('text', { value: unref(child) })) */
       } else {
         children.push(child)
       }
@@ -63,6 +61,7 @@ export class VNode {
 
 // render to string
 export function render(node: VNode): string {
+  console.log(node.tag, node.props, node.children)
   if (typeof node.tag === 'function') {
     return render(node.tag(node.props))
   }
@@ -72,10 +71,14 @@ export function render(node: VNode): string {
   }
 
   const attrs = Object.entries(node.props)
-    .map(([key, value]) => ` ${key}="${value}"`)
+    .map(([key, value]) => {
+      if (key === 'className') {
+        key = 'class'
+      }
+      return ` ${key}="${value}"`
+    })
     .join('')
 
-  // const children = node.props.children.map((child) => render(child)).join('')
   const children = node.children.map((child) => render(child)).join('')
 
   return `<${node.tag}${attrs}>${children}</${node.tag}>`
@@ -84,32 +87,25 @@ export function render(node: VNode): string {
 // render to dom
 export function mount(node: VNode, container: HTMLElement) {
   if (typeof node.tag === 'function') {
-    effect(() => {
-      container.innerHTML = ''
-      mount(node.tag(node.props), container)
-    })
+    container.innerHTML = ''
+    mount(node.tag(node.props), container)
     return
   }
 
   if (node.tag === 'text') {
     const $text = document.createTextNode(node.props.value)
     container.appendChild($text)
-    effect(() => {
-      $text.nodeValue = node.props.value
-    })
+    $text.nodeValue = node.props.value
     return
   }
 
   const $el = document.createElement(node.tag)
 
   Object.entries(node.props).forEach(([key, value]) => {
-    if (isRef(value)) {
-      effect(() => {
-        $el.setAttribute(key, unref(value) as string)
-      })
-    } else {
-      $el.setAttribute(key, value)
+    if (key === 'className') {
+      key = 'class'
     }
+    $el.setAttribute(key, value)
   })
 
   node.listeners.forEach((callback, event) => {

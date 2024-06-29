@@ -1,5 +1,5 @@
 import type { ServerWebSocket, WebSocketHandler } from 'bun'
-import type { AnyFn } from '@/types'
+import type { AnyFn } from '../types'
 
 export interface Payload {
   type: 'object' | 'literal' | 'function'
@@ -11,12 +11,13 @@ export interface Message {
   payload: Payload[]
 }
 
-interface Channel<T = any> {
+export interface Channel<T = any> {
   sockets: Set<Socket>
   context: T
+  emit(event: string, data?: unknown): void
 }
 
-export class IO {
+export class SocketServer {
   private events: Map<string, (socket: Socket) => void> = new Map()
   private clients: Map<string, Socket> = new Map()
   private channels: Map<string | number, Channel> = new Map()
@@ -58,6 +59,7 @@ export class IO {
     this.channels.set(id, {
       sockets: new Set(),
       context,
+      emit: (event, data) => this.broadcast(id, event, data),
     })
   }
 
@@ -86,7 +88,7 @@ export class IO {
   broadcast(
     channelId: string | number,
     event: string,
-    data: unknown,
+    data?: unknown,
     socketId?: string,
   ) {
     this.getChannel(channelId).sockets.forEach((socket) => {
@@ -100,7 +102,7 @@ export class IO {
   }
 }
 
-function webSocketHandler(io: IO): WebSocketHandler<{ id: string }> {
+function webSocketHandler(io: SocketServer): WebSocketHandler<{ id: string }> {
   return {
     open(ws) {
       io.addClient(ws)
@@ -122,11 +124,11 @@ function webSocketHandler(io: IO): WebSocketHandler<{ id: string }> {
 
 export class Socket {
   readonly id: string
-  private io: IO
+  private io: SocketServer
   private ws: ServerWebSocket<{ id: string }>
   private events: Map<string, AnyFn> = new Map()
 
-  constructor(ws: ServerWebSocket<{ id: string }>, io: IO) {
+  constructor(ws: ServerWebSocket<{ id: string }>, io: SocketServer) {
     this.id = ws.data.id
     this.io = io
     this.ws = ws

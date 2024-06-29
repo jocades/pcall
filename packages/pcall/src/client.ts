@@ -3,7 +3,7 @@ import { type Router } from './router'
 import { type DecorateCaller } from './types'
 import { RPCRequest, RPCResponse } from './rpc'
 import { isFn } from './util'
-import { SocketClient } from './socket/socket-client'
+import { SocketClient } from './ws/client'
 
 export interface ClientOptions {
   /**
@@ -47,7 +47,7 @@ interface BatchOptions {
  */
 export function client<T extends Router>(
   url: string,
-  opts: ClientOptions = {},
+  opts: ClientOptions = {}
 ) {
   const loggerx = (isFn(opts.logger) ? opts.logger() : opts.logger)
     ? logger
@@ -60,7 +60,7 @@ export function client<T extends Router>(
 
   return createProxy<DecorateCaller<T['$def']>>((path, args) => {
     if (path.length === 1 && path[0] === '$ws') {
-      return new SocketClient(getWebSocketUrl(url))
+      return new SocketClient(wsUrl(url))
     }
 
     const method = path.join('.')
@@ -183,7 +183,7 @@ async function linear(
   url: string,
   method: string,
   params: unknown,
-  logger?: Logger,
+  logger?: Logger
 ) {
   const request = new RPCRequest(1, method, params)
   logger?.info(request.method, request)
@@ -199,18 +199,8 @@ async function linear(
   return response.result
 }
 
-function getWebSocketUrl(url: string) {
-  let wsUrl = ''
-
-  if (url.startsWith('http://')) {
-    wsUrl = url.replace('http://', 'ws://')
-  } else if (url.startsWith('https://')) {
-    wsUrl = url.replace('https://', 'ws://')
-  } else {
-    wsUrl = `ws://${url}`
-  }
-
-  return wsUrl + '/ws'
+function wsUrl(url: string) {
+  return url.replace(/(http:\/\/|https:\/\/)/, 'ws://') + '/ws'
 }
 
 function css(styles: Record<string, string>) {
@@ -236,14 +226,14 @@ function log(
   dir: 'up' | 'down',
   method: string,
   data: unknown,
-  color: keyof typeof colors = 'gray',
+  color: keyof typeof colors = 'gray'
 ) {
   console.log(
     `%c %s %s %O`,
     styles + `;background: ${colors[color]}`,
     dir === 'up' ? '>>' : '<<',
     method,
-    data,
+    data
   )
 }
 

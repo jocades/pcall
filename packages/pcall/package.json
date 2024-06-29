@@ -14,13 +14,18 @@
     },
     "./next": {
       "default": "./src/adapters/next.js"
+    },
+    "./http": {
+      "default": "./src/http/index.js"
+    },
+    "./ws": {
+      "default": "./src/ws/index.js"
     }
   },
   "devDependencies": {
     "@types/bun": "1.1.5",
     "zod": "^3.0.0",
-    "hono": "^4.4.4",
-    "what": "workspace:*"
+    "hono": "^4.4.4"
   },
   "peerDependencies": {
     "typescript": "^5.0.0",

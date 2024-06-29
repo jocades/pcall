@@ -1,6 +1,6 @@
 async function build() {
   const result = await Bun.build({
-    entrypoints: ['./app.tsx'],
+    entrypoints: ['./mount.tsx'],
     outdir: './dist',
     naming: `[dir]/bundle.[ext]`,
   })

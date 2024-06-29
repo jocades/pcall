@@ -3,9 +3,8 @@ import { handle } from './adapters/bun'
 import type { AnyObject, MaybePromise } from './types'
 import type { Server, WebSocketHandler } from 'bun'
 import { RPCRequest, RPCResponse } from './rpc'
-import { Context, LinearRouter, _upgrade, type Handler } from './http'
-import { Env } from './_env'
 import { isDef } from './util'
+import { Context, Liar, logger, serveStatic, upgradeWebSocket } from './http'
 
 export interface ServeOptions {
   port?: number
@@ -41,11 +40,14 @@ export function fetchHandler(
   opts: ServeOptions = {},
   standalone = false,
 ) {
-  const app = new LinearRouter(opts)
+  const app = new Liar(opts)
   const { endpoint = '/rpc' } = opts
 
   if (standalone) {
-    if (opts.log || (!isDef(opts.log) && Env.DEV)) {
+    if (
+      opts.log ||
+      (!isDef(opts.log) && process.env.NODE_ENV === 'development')
+    ) {
       app.use(logger())
     }
 
@@ -69,7 +71,36 @@ export function fetchHandler(
       },
     )
 
-    app.options('*', (c) => c.send())
+    /* app.get('/test/*', (c) => {
+      console.log('wildcard', c.req.url.pathname)
+      return c.text('Wildcard')
+    }) */
+
+    app.get('/test/:id/*', (c) => {
+      console.log('params', c.req.params)
+      return c.text('Wildcard')
+    })
+
+    app.get('/test/:id', (c) => {
+      console.log('params', c.req.params)
+      return c.json(c.req.params)
+    })
+
+    app.get('/test/:id/:name', (c) => {
+      console.log('params', c.req.params)
+      return c.json(c.req.params)
+    })
+
+    app.options('*', (c) => {
+      console.log('OPTIONS', c.req.path, c.req.headers)
+      return c.send()
+    })
+
+    app.get(`${endpoint}/ws`, upgradeWebSocket())
+
+    app.get(`${endpoint}/test-error`, () => {
+      throw new Error('Test error')
+    })
 
     if (opts.static) {
       app.get(
@@ -80,19 +111,13 @@ export function fetchHandler(
         ),
       )
     }
-
-    app.get(`${endpoint}/ws`, upgradeWebSocket())
-
-    app.get(`${endpoint}/test-error`, () => {
-      throw new Error('Test error')
-    })
   }
 
   // RPC Interface
   const handle = router.init()
 
   app.post(standalone ? endpoint : '*', async (c) => {
-    if (c.req.url.searchParams.has('batch')) {
+    if (c.req.query.has('batch')) {
       const requests = await RPCRequest.from<[]>(c.req)
       const responses = await Promise.all(
         requests.map(async (req) => {
@@ -114,73 +139,4 @@ export function fetchHandler(
   })
 
   return app.fetch
-}
-
-function logger(
-  opts: {
-    in?: (c: Context) => string
-    out?: (c: Context, elapsed: number) => string
-    logIncoming?: boolean
-  } = {},
-): Handler {
-  return async (c, next) => {
-    const start = performance.now()
-    if (opts.logIncoming || !isDef(opts.logIncoming)) {
-      console.log(
-        opts.in ? opts.in(c) : `-> ${c.req.method} ${c.req.url.pathname}`,
-      )
-    }
-    await next()
-    const elapsed = (performance.now() - start).toFixed(3)
-    console.log(
-      opts.out
-        ? opts.out(c, Number(elapsed))
-        : `<- ${c.req.method} ${c.req.url.pathname} | ${c._status} | ${elapsed}ms`,
-    )
-  }
-}
-
-function serveStatic(dir: string, fallback: string): Handler {
-  return async (c) => {
-    const path = `${dir}${c.req.url.pathname === '/' ? '/index.html' : c.req.url.pathname}`
-    const file = (await Bun.file(path).exists())
-      ? Bun.file(path)
-      : Bun.file(`${dir}/${fallback}`)
-
-    c.header('content-type', file.type)
-    return c.file(file)
-  }
-}
-
-function upgradeWebSocket(): Handler {
-  return (c) => {
-    if (c[_upgrade]()) {
-      return undefined as unknown as Response
-    }
-    c.status(500)
-    return c.text('Upgrade failed')
-  }
-}
-
-function getOrigin(req: Request) {
-  return {
-    referer: req.headers.get('Referer'),
-    origin: req.headers.get('Origin'),
-    host: req.headers.get('Host'),
-  }
-}
-
-export interface CorsOptions {
-  origins?: string[]
-  methods?: string[]
-  headers?: string[]
-}
-
-export function cors(opts: CorsOptions = {}): Record<string, string> {
-  return {
-    'Access-Control-Allow-Origin': opts.origins?.join(', ') ?? '*',
-    'Access-Control-Allow-Methods':
-      opts.methods?.join(', ') ?? 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': opts.headers?.join(', ') ?? 'Content-Type',
-  }
 }

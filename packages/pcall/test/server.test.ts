@@ -1,6 +1,7 @@
-import { cors, serve } from '@/server'
+import { serve } from '@/server'
 import { app } from './mock'
 import { io } from './socket.test'
+import { cors } from '@/http'
 
 const server = serve(app, {
   port: 8000,
@@ -8,7 +9,7 @@ const server = serve(app, {
   headers: cors(),
   websocket: io.handler(),
   static: {
-    dir: `${__dirname}/../static`,
+    dir: `${__dirname}/static`,
     fallback: 'not-found.html',
   },
   context(req) {

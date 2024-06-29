@@ -1,6 +1,6 @@
-import type { AnyFn } from '@/types'
+import type { AnyFn } from '../types'
 import { isFn, isLiteral, isObj } from '../util'
-import type { Message } from './socket-server'
+import type { Message } from './server'
 
 export class SocketClient {
   private ws: WebSocket
@@ -50,7 +50,7 @@ export class SocketClient {
 
   on(
     event: 'connect' | 'disconnect' | (string & {}),
-    callback: (data: any) => void,
+    callback: (...data: any[]) => void,
   ) {
     this.events.set(event, callback)
   }

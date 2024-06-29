@@ -1,5 +1,5 @@
-import { client } from '..'
-import { type AppRouter } from '../test/mock'
+import { client } from '../../'
+import { type AppRouter } from '../../test/mock'
 
 function $<T extends Element>(selector: string) {
   return document.querySelector<T>(selector)!

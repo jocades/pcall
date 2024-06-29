@@ -1,4 +1,4 @@
-const staticDir = `${__dirname}/../static`
+const staticDir = `${__dirname}`
 
 export async function build() {
   console.log('Building...')
