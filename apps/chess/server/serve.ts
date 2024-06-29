@@ -18,6 +18,7 @@ const games = new Map<number, Game>()
 
 io.on('connection', (socket) => {
   socket.on('disconnect', () => {
+    console.log(socket === waiting)
     console.log(`User ${socket.id} disconnected`)
   })
 

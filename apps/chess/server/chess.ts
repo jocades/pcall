@@ -1,10 +1,6 @@
 import type { Channel, Socket, SocketServer } from '@/ws/server'
 import { Chess, type Move } from 'chess.js'
 
-const chess = new Chess()
-
-chess.move('e4')
-
 export const enum Events {
   INIT = 'init',
   MOVE = 'move',
@@ -14,8 +10,8 @@ export const enum Events {
 export class Game {
   id: number
   chess: Chess
-  white: Socket
-  black: Socket
+  w: Socket
+  b: Socket
   timestamp: number
 
   constructor(id: number, white: Socket, black: Socket) {
@@ -23,8 +19,8 @@ export class Game {
     this.chess = new Chess()
     this.timestamp = Date.now()
 
-    this.white = white
-    this.black = black
+    this.w = white
+    this.b = black
   }
 
   makeMove(move: { from: string; to: string }) {
@@ -35,17 +31,23 @@ export class Game {
       return
     }
 
-    // only emit to the player receiving the move
-    // it is already validated in the frontend
-    // for now account for valid move
-    // this[color === 'white' ? 'black' : 'white'].emit(Events.MOVE, move)
-    // this[this.switch(color)].emit(Events.MOVE, move)
-    const to = chess.turn() === 'w' ? 'black' : 'white'
-    this[to].emit(Events.MOVE, move)
+    const color = this.chess.turn() === 'w' ? 'white' : 'black'
+
+    if (this.chess.isGameOver()) {
+      this.send(Events.END, { winner: color })
+      return
+    }
+
+    this[this.chess.turn()].emit(Events.MOVE, move)
   }
 
-  switch(color: 'white' | 'black') {
-    return color === 'white' ? 'black' : 'white'
+  send(event: string, data?: unknown) {
+    this.w.emit(event, data)
+    this.b.emit(event, data)
+  }
+
+  [Symbol.toPrimitive]() {
+    return this.id
   }
 }
 
