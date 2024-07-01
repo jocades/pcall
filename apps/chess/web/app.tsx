@@ -2,8 +2,8 @@ import { client } from '@/client'
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { type AppRouter } from '../server/serve'
 import { Chess, type Move, type Piece, type Square } from 'chess.js'
-import { HTMLChessboardElement } from './web-component'
 import { defaultPieces } from './chessboard/pieces'
+import { COLUMNS } from './chessboard/consts'
 
 const api = client<AppRouter>('http://localhost:8000/rpc')
 
@@ -11,17 +11,8 @@ const ws = api.$ws()
 
 const chess = new Chess()
 
-/* console.log(chess.board())
-console.log(chess.board().toReversed())
-
-chess.move('e4')
-
-console.log(chess.board())
-console.log(chess.board().toReversed()) */
-
-const COLUMNS = 'abcdefgh'.split('')
-
 export default function App() {
+  const [count, setCount] = useState(0)
   const [connected, setConnected] = useState(false)
   const [searching, setSearching] = useState(false)
 
@@ -29,8 +20,6 @@ export default function App() {
   const [color, setColor] = useState<'white' | 'black'>('white')
   const [board, setBoard] = useState(() => getBoard())
   const [boardWidth, setBoardWidth] = useState<number>(512)
-
-  console.log('COLOR', color)
 
   const from = useRef<Square | null>(null)
 
@@ -84,7 +73,7 @@ export default function App() {
   }
 
   function onSquareClick(square: Square, piece: Piece | null) {
-    console.log('Square:', square, 'Piece:', piece)
+    console.log(square, piece)
 
     if (from.current === square) return
 
@@ -103,34 +92,45 @@ export default function App() {
     }
   }
 
-  /* return (
+  return (
     <main className="relative flex flex-col h-screen items-center justify-center">
-      <chess-board
-        ref={ref}
-        onClick={() => console.log('clicked')}
-      ></chess-board>
+      {/* <chess-board
+        onClick={(e) => {
+          console.log
+          console.log(e.detail)
+          const t = e.target
+          console.log(t)
+        }}
+      ></chess-board> */}
+      <my-element my-attr="ok"></my-element>
+      <button onClick={() => setCount((prev) => prev + 1)}>
+        <span>Count: {count}</span>
+      </button>
     </main>
-  ) */
-
-  const boardRef = useRef<HTMLDivElement>(null)
-
-  const rect = useMemo(
-    () => boardRef.current?.getBoundingClientRect(),
-    [boardRef.current],
   )
 
-  /* useEffect(() => {
-    if (!boardRef.current) return
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  /* const rect = useMemo(
+    () => containerRef.current?.getBoundingClientRect(),
+    [containerRef.current],
+  ) */
+
+  useEffect(() => {
+    if (!containerRef.current) return
 
     const observer = new ResizeObserver(() => {
-      setBoardWidth(boardRef.current!.offsetWidth)
-    })
-    observer.observe(boardRef.current)
+      const rect = containerRef.current?.getBoundingClientRect()
+      const size = Math.min(rect?.width || 0, rect?.height || 0)
 
-    return () => {
-      observer.disconnect()
-    }
-  }, [boardRef.current]) */
+      console.log('Size:', size)
+      setBoardWidth(size)
+    })
+
+    observer.observe(containerRef.current)
+
+    return () => observer.disconnect()
+  }, [containerRef.current])
 
   if (!connected)
     return (
@@ -140,7 +140,7 @@ export default function App() {
     )
 
   return (
-    <main className="relative flex flex-col h-screen items-center justify-center">
+    <main className="relative flex flex-col h-screen items-center justify-center bg-blue-200">
       <button
         className="btn"
         onClick={() => {
@@ -157,87 +157,75 @@ export default function App() {
       >
         Color
       </button>
+
       {/* container */}
-      <div className="flex flex-col w-full bg-red-200">
-        <div ref={boardRef} className="w-full">
-          <div
-            className="relative"
-            style={{ width: boardWidth, height: boardWidth }}
-          >
-            {/* squares */}
-            {board.map((row, r) => (
-              <div key={r} className="flex">
-                {row.map((piece, c) => {
-                  const square =
-                    color === 'white'
-                      ? COLUMNS[c] + (8 - r)
-                      : COLUMNS[7 - c] + (r + 1)
-                  // const squareColor = (r + c) % 2 === 0 ? '#edd7a4' : '#b58863'
-                  const squareColor = (r + c) % 2 === 0 ? 'white' : 'black'
+      <div
+        ref={containerRef}
+        className="relative"
+        style={{ width: undefined, height: undefined }}
+      >
+        {/* squares */}
+        {board.map((row, r) => (
+          <div key={r} className="flex">
+            {row.map((piece, c) => {
+              const square =
+                color === 'white'
+                  ? COLUMNS[c] + (8 - r)
+                  : COLUMNS[7 - c] + (r + 1)
+              const squareColor = (r + c) % 2 === 0 ? 'white' : 'black'
 
-                  // console.log({ row: r, col: c, square, squareColor })
+              // console.log({ row: r, col: c, square, squareColor })
 
-                  return (
-                    /* square */
-                    <div
-                      key={c}
-                      className="relative"
-                      style={{
-                        width: boardWidth / 8,
-                        height: boardWidth / 8,
-                        backgroundColor:
-                          squareColor === 'white' ? '#edd7a4' : '#b58863',
-                      }}
-                      onClick={() => onSquareClick(square as Square, piece)}
+              return (
+                /* square */
+                <div
+                  key={c}
+                  className="relative"
+                  style={{
+                    width: boardWidth / 8,
+                    height: boardWidth / 8,
+                    backgroundColor:
+                      squareColor === 'white' ? '#edd7a4' : '#b58863',
+                  }}
+                  onClick={() => onSquareClick(square as Square, piece)}
+                >
+                  {/* piece */}
+                  {piece && (
+                    <svg
+                      viewBox={'1 1 43 43'}
+                      width={boardWidth / 8}
+                      height={boardWidth / 8}
+                      className="block hover:cursor-grab"
                     >
-                      {/* piece */}
-                      {/* <div className="hover:cursor-pointer">{piece?.type}</div> */}
-
-                      {/* <img
-                    src={`/assets/${piece.color}${piece.type}.png`}
-                    alt={piece.type}
-                    className="w-8 h-8 hover:cursor-grab"
-                  /> */}
-                      {piece && (
-                        <svg
-                          viewBox={'1 1 43 43'}
-                          width={boardWidth / 8}
-                          height={boardWidth / 8}
-                          className="block hover:cursor-grab"
-                        >
-                          <g>{defaultPieces[`${piece.color}${piece.type}`]}</g>
-                        </svg>
-                      )}
-                      {/* notation */}
-                      {c === 0 && (
-                        <div
-                          className="absolute left-1 top-1 text-xs"
-                          style={{
-                            color:
-                              squareColor === 'white' ? '#b58863' : '#edd7a4',
-                          }}
-                        >
-                          {color === 'white' ? 8 - r : r + 1}
-                        </div>
-                      )}
-                      {r === 7 && (
-                        <div
-                          className="absolute right-1 bottom-1 text-xs"
-                          style={{
-                            color:
-                              squareColor === 'white' ? '#b58863' : '#edd7a4',
-                          }}
-                        >
-                          {color === 'white' ? COLUMNS[c] : COLUMNS[7 - c]}
-                        </div>
-                      )}
+                      <g>{defaultPieces[`${piece.color}${piece.type}`]}</g>
+                    </svg>
+                  )}
+                  {/* notation */}
+                  {c === 0 && (
+                    <div
+                      className="absolute left-1 top-1 text-xs"
+                      style={{
+                        color: squareColor === 'white' ? '#b58863' : '#edd7a4',
+                      }}
+                    >
+                      {color === 'white' ? 8 - r : r + 1}
                     </div>
-                  )
-                })}
-              </div>
-            ))}
+                  )}
+                  {r === 7 && (
+                    <div
+                      className="absolute right-1 bottom-1 text-xs"
+                      style={{
+                        color: squareColor === 'white' ? '#b58863' : '#edd7a4',
+                      }}
+                    >
+                      {color === 'white' ? COLUMNS[c] : COLUMNS[7 - c]}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
-        </div>
+        ))}
       </div>
       {/* color */}
       <h3 className="text-2xl">{color}</h3>

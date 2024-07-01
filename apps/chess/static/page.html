@@ -1,0 +1,47 @@
+<title>My Page</title>
+
+<main class="relative flex flex-col h-screen items-center justify-center">
+  <chess-board
+    id="1"
+    onclick="console.log('hello')"
+    orientation="white"
+  ></chess-board>
+
+  <button class="btn"></button>
+
+  <script>
+    const $board = document.querySelector('chess-board')
+
+    const $btn = document.querySelector('button')
+    $btn.textContent = $board.orientation
+
+    $btn.onclick = () => {
+      $board.orientation = $board.orientation === 'white' ? 'black' : 'white'
+      $btn.textContent = $board.orientation
+    }
+  </script>
+
+  <simple-greeting name="World">
+    #shadow-root (open)
+    <button>
+      <span>
+        <span>
+          "Count is"
+          <!--?lit$411133232-->
+          "0"
+        </span>
+      </span>
+    </button>
+  </simple-greeting>
+
+  <!-- <my-element></my-element>
+  <div class="size-64 bg-blue-200">
+    <div
+      id="drag"
+      draggable="true"
+      class="size-32 bg-red-200 hover:cursor-grab"
+    ></div>
+  </div>
+
+  <div id="target" class="size-64 bg-green-200"></div> -->
+</main>

@@ -20,7 +20,7 @@ export class Context<T extends AnyObject = AnyObject> {
     req: Request,
     server?: Server,
     env: T = {} as T,
-    headers: Headers = {}
+    headers: Headers = {},
   ) {
     this.req = new LiarRequest(req)
     this.#server = server
@@ -81,7 +81,7 @@ export function logger(
     in?: (c: Context) => string
     out?: (c: Context, elapsed: number) => string
     logIncoming?: boolean
-  } = {}
+  } = {},
 ): Handler {
   return async (c, next) => {
     const start = performance.now()
@@ -93,7 +93,7 @@ export function logger(
     console.log(
       opts.out
         ? opts.out(c, Number(elapsed))
-        : `<- ${c.req.method} ${c.req.path} | ${c._status} | ${elapsed}ms`
+        : `<- ${c.req.method} ${c.req.path} | ${c._status} | ${elapsed}ms`,
     )
   }
 }
@@ -104,6 +104,42 @@ export function serveStatic(dir: string, fallback: string): Handler {
     const file = (await Bun.file(path).exists())
       ? Bun.file(path)
       : Bun.file(`${dir}/${fallback}`)
+
+    if (file.type.includes('text/html')) {
+      let content = await file.text()
+
+      const contentPlaceholderRegex = /{{\s*\.content:(\w+\.\w+)\s*}}/g
+      const titleTagRegex = /<title>(.*?)<\/title>/
+      const placeholderRegex = /{{\s*\.title\s*}}|{{\s*\.content:\w+\.\w+\s*}}/g
+
+      // const regex = /{{\s*\.content:(\w+\.\w+)\s*}}/g
+      const matches = [...content.matchAll(contentPlaceholderRegex)]
+      // console.log(matches)
+
+      const replacements: Record<string, string> = {}
+
+      for (const match of matches) {
+        const [full, filePath] = match
+        let child = await Bun.file(`${dir}/${filePath}`).text()
+
+        const titleMatch = child.match(titleTagRegex)
+        console.log(titleMatch)
+        if (titleMatch) {
+          replacements['{{ .title }}'] = titleMatch[1]
+          child = child.replace(titleTagRegex, '')
+        }
+
+        replacements[full] = child
+      }
+
+      // console.log(replacements)
+
+      content = content.replace(placeholderRegex, (match) => {
+        return replacements[match] ?? ''
+      })
+
+      return c.html(content)
+    }
 
     c.header('content-type', file.type)
     return c.file(file)
