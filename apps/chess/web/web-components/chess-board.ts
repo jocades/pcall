@@ -94,6 +94,10 @@ export class HTMLChessboardElement extends HTMLElement {
 
     this.shadowRoot?.append($style, this.$container)
 
+    const x = `<div>`
+
+    this.$container.innerHTML = '<div></div>'
+
     for (let r = 0; r < 8; r++) {
       const $row = h('div', { className: 'row' })
 

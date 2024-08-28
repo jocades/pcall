@@ -6,6 +6,7 @@ init()
 
 /* const el = document.querySelector<HTMLDivElement>('#drag')!
 
+
 el.ondragstart = (e) => {
   console.log('drag start', e.target)
   e.dataTransfer!.setData('text/plain', e.target.id)

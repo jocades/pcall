@@ -21,6 +21,13 @@ export class SocketServer {
   private events: Map<string, (socket: Socket) => void> = new Map()
   private clients: Map<string, Socket> = new Map()
   private channels: Map<string | number, Channel> = new Map()
+  private strict: boolean
+
+  websocket = webSocketHandler(this)
+
+  constructor({ strict = false }: { strict?: boolean } = {}) {
+    this.strict = strict
+  }
 
   on(event: 'connection', handler: (socket: Socket) => void): void {
     this.events.set(event, handler)
@@ -29,11 +36,11 @@ export class SocketServer {
   trigger(event: 'connection', id: string): void {
     const handler = this.events.get(event)
 
-    if (!handler) {
+    if (this.strict && !handler) {
       throw new Error(`No handler for event: ${event}`)
     }
 
-    handler(this.getClient(id))
+    handler?.(this.getClient(id))
   }
 
   emit(event: string, data?: unknown): void {
@@ -96,13 +103,9 @@ export class SocketServer {
       socket.emit(event, data)
     })
   }
-
-  handler() {
-    return webSocketHandler(this)
-  }
 }
 
-function webSocketHandler(io: SocketServer): WebSocketHandler<{ id: string }> {
+function webSocketHandler(io: SocketServer) {
   return {
     open(ws) {
       io.addClient(ws)
@@ -119,7 +122,7 @@ function webSocketHandler(io: SocketServer): WebSocketHandler<{ id: string }> {
 
       socket.trigger(message.event, ...payload)
     },
-  }
+  } satisfies WebSocketHandler<{ id: string }>
 }
 
 export class Socket {

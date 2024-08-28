@@ -7,7 +7,7 @@ const server = serve(app, {
   port: 8000,
   endpoint: '/rpc',
   headers: cors(),
-  websocket: io.handler(),
+  websocket: io.websocket,
   static: {
     dir: `${__dirname}/static`,
     fallback: 'not-found.html',

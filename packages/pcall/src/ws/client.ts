@@ -26,13 +26,7 @@ export class SocketClient {
 
     this.ws.onmessage = ({ data }) => {
       const message: Message = JSON.parse(data)
-      const handler = this.events.get(message.event)
-
-      if (!handler) {
-        throw new Error(`Event ${message.event} not found`)
-      }
-
-      handler(...message.payload)
+      this.events.get(message.event)?.(...message.payload)
     }
 
     this.ws.onerror = (err) => {

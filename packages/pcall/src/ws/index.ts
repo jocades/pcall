@@ -5,4 +5,4 @@ export {
   type Channel,
 } from './server'
 
-export { SocketClient as WebSocket } from './client'
+export { SocketClient } from './client'

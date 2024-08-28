@@ -18,8 +18,11 @@
     "./http": {
       "default": "./src/http/index.js"
     },
-    "./ws": {
-      "default": "./src/ws/index.js"
+    "./ws/server": {
+      "default": "./src/ws/server.js"
+    },
+    "./ws/client": {
+      "default": "./src/ws/client.js"
     }
   },
   "devDependencies": {

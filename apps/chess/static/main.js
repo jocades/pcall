@@ -208,6 +208,8 @@ class HTMLChessboardElement extends HTMLElement {
     const $style = h("style", { textContent: HTMLChessboardElement.styles });
     this.$container = h("div", { className: "container" });
     this.shadowRoot?.append($style, this.$container);
+    const x = `<div>`;
+    this.$container.innerHTML = "<div></div>";
     for (let r = 0;r < 8; r++) {
       const $row = h("div", { className: "row" });
       for (let c = 0;c < 8; c++) {
